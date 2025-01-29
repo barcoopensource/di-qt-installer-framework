@@ -115,6 +115,14 @@ INCLUDEPATH += \
     $$IFW_SOURCE_TREE/src/libs/ifwtools \
     $$IFW_SOURCE_TREE/src/libs/installer
 
+INCLUDEPATH += "C:/DISW/Installed/bzip2/include"
+INCLUDEPATH += "C:/DISW/Installed/xz/include"
+INCLUDEPATH += "C:/DISW/Installed/zlib/include"
+
+IFW_BZIP2_LIBRARY = "C:/DISW/Installed/bzip2/lib/bz2_static.lib"
+IFW_LZMA_LIBRARY = "C:/DISW/Installed/xz/lib/lzma.lib"
+IFW_ZLIB_LIBRARY = "C:/DISW/Installed/zlib/lib/zlibstatic.lib"
+
 CONFIG(libarchive): INCLUDEPATH += $$IFW_SOURCE_TREE/src/libs/3rdparty/libarchive
 
 CONFIG(lzmasdk) {
@@ -143,6 +151,8 @@ macx:LIBS += -framework Carbon -framework Security
     contains(QT_CONFIG, static): CONFIG += static
     contains(QT_CONFIG, shared): CONFIG += shared
 }
+
+CONFIG += static
 
 QT += uitools core-private
 CONFIG(static, static|shared) {
