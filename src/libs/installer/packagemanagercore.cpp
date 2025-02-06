@@ -3835,6 +3835,14 @@ QString PackageManagerCore::value(const QString &key, const QString &defaultValu
     return d->m_data.value(key, defaultValue, static_cast<QSettings::Format>(format)).toString();
 }
 
+QString PackageManagerCore::getHttpProxy() const
+{
+    QNetworkProxy proxy = d->m_data.settings().httpProxy();
+    qInfo() << "installer value:" << proxy.hostName();
+
+    return proxy.hostName();
+}
+
 /*!
     Returns the installer value for \a key. If \a key is not known to the system, \a defaultValue is
     returned. Additionally, on Windows, \a key can be a registry key.

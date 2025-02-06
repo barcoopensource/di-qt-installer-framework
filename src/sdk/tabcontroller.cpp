@@ -256,6 +256,21 @@ void TabController::onCurrentIdChanged(int newId)
 
 void TabController::onNetworkSettingsChanged(const QInstaller::Settings &settings)
 {
+    qInfo() << "Changing the network settings in packagemanagercore";
     d->m_settings = settings;
     d->m_networkSettingsChanged = true;
+
+    //test
+    qInfo() << "Changing the network settings in packagemanagercore";
+    d->m_core->settings().setFtpProxy(d->m_settings.ftpProxy());
+    d->m_core->settings().setHttpProxy(d->m_settings.httpProxy());
+    d->m_core->settings().setProxyType(d->m_settings.proxyType());
+
+    d->m_core->settings().setUserRepositories(d->m_settings.userRepositories());
+    d->m_core->settings().setDefaultRepositories(d->m_settings.defaultRepositories());
+    d->m_core->settings().setTemporaryRepositories(d->m_settings.temporaryRepositories(),
+                                                   d->m_settings.hasReplacementRepos());
+    d->m_core->settings().setLocalCachePath(d->m_settings.localCachePath());
+
+    d->m_core->networkSettingsChanged();
 }

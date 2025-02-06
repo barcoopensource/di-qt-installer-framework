@@ -947,8 +947,11 @@ void Settings::setFtpProxy(const QNetworkProxy &proxy)
 QNetworkProxy Settings::httpProxy() const
 {
     const QVariant variant = d->m_data.value(scHttpProxy);
+    qInfo() << "http proxy variant" << variant;
     if (variant.canConvert<QNetworkProxy>())
         return variant.value<QNetworkProxy>();
+    else
+        qInfo() << "cannot convert variant to proxy";
     return QNetworkProxy();
 }
 
