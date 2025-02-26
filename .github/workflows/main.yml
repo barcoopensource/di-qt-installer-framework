@@ -3,7 +3,7 @@ name: Build package
 on:
   push
   
- env:
+env:
   BUILD_OUTPUT_PATH: ./build_output
 
 # Prevent running multiple-runners per workflow-file per event-name per branch per github-user (/ref)
