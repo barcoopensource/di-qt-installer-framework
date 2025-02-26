@@ -1,0 +1,36 @@
+name: Build package
+
+on:
+  push
+  
+ env:
+  BUILD_OUTPUT_PATH: ./build_output
+
+# Prevent running multiple-runners per workflow-file per event-name per branch per github-user (/ref)
+# Ex. multiple changes are commited on the same PR/branch in a very short timespan,
+#     cancel the previous runner (as it's not the latest anymore)
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name }}-${{ github.ref }}-${{ github.actor }}
+  cancel-in-progress: true
+
+jobs:
+  package_download:
+    permissions:
+      contents: write  
+    runs-on: ubuntu-24.04
+    steps:
+    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+    - run: ./scripts/package-download.sh
+    - run: mkdir -p ${{env.BUILD_OUTPUT_PATH}}
+    
+  qmake_with_cmd:
+    steps:
+    - name: set up develop env and qmake install
+      shell: cmd
+      run: c:; cd C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/BuildTools/VC/Auxiliary/Build
+      run: vcvarsall.bat x64 
+      run: set path=%path%;$GITHUB_WORKSPACE/package/Qt_Static-6.6.0/bin
+      run: qmake -v
+      run: qmake ./installerfw.pro -spec win32-msvc "CONFIG+=qtquickcompiler"  -o ${{env.BUILD_OUTPUT_PATH}}
+
+
