@@ -34,7 +34,7 @@ jobs:
       - shell: cmd
         run: set path=%path%;$GITHUB_WORKSPACE\package\Qt_Static-6.6.0\bin
       - shell: cmd
-        run: cd $GITHUB_WORKSPACE;qmake .\installerfw.pro -spec win32-msvc "CONFIG+=qtquickcompiler"  -o ${{ env.BUILD_OUTPUT_PATH }}
+        run: d:; cd $GITHUB_WORKSPACE;qmake .\installerfw.pro -spec win32-msvc "CONFIG+=qtquickcompiler"  -o ${{ env.BUILD_OUTPUT_PATH }}
         
         
 
