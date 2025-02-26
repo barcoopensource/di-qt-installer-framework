@@ -15,10 +15,10 @@ mkdir -p "$PKG"
 
 echo "Fetching Qt_Static-6.6.0 package"
 gh release download --repo "$QT_STAT_REPO" "$QT_STAT_VERSION" \
-    --pattern "$QT_STAT_ASSET" --dir "$QT_STAT_PKG"
+    --pattern "$QT_STAT_ASSET" --output "$QT_STAT_PKG.zip"
 	
 echo "Unzipping component package \"$QT_STAT_ASSET\""
-unzip "$QT_STAT_ASSET" -d "$QT_STAT_PKG"
+unzip "$QT_STAT_PKG" -d "$QT_STAT_PKG"
 
 echo "Remove component package ZIP"
 rm "$QT_STAT_PKG.zip" -rf
