@@ -27,10 +27,10 @@ jobs:
     steps:
     - name: set up develop env and qmake install
       shell: cmd
-      run: c:; cd C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/BuildTools/VC/Auxiliary/Build
-      run: vcvarsall.bat x64 
-      run: set path=%path%;$GITHUB_WORKSPACE/package/Qt_Static-6.6.0/bin
-      run: qmake -v
-      run: qmake ./installerfw.pro -spec win32-msvc "CONFIG+=qtquickcompiler"  -o ${{env.BUILD_OUTPUT_PATH}}
+    - run: c:; cd C:/Program Files (x86)/Microsoft Visual Studio/2019/Enterprise/BuildTools/VC/Auxiliary/Build
+    - run: vcvarsall.bat x64 
+    - run: set path=%path%;$GITHUB_WORKSPACE/package/Qt_Static-6.6.0/bin
+    - run: qmake -v
+    - run: qmake ./installerfw.pro -spec win32-msvc "CONFIG+=qtquickcompiler"  -o ${{env.BUILD_OUTPUT_PATH}}
 
 
