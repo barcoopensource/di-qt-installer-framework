@@ -6,7 +6,7 @@ PKG="$ROOT/package"
 QT_STAT_PKG="$PKG/Qt_Static-6.6.0"
 
 QT_STAT_REPO="JasonSun0593/Qt_Static-6.6.0"
-QT_STAT_VERSION="v1.0.0"
+QT_STAT_VERSION="1.0.0"
 QT_STAT_ASSET="static_qt_660-package.zip"
 
 echo "Cleanup previous build"
