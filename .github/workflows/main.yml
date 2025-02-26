@@ -19,14 +19,14 @@ jobs:
       contents: write  
     runs-on: ubuntu-24.04
     steps:
-    - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-    - run: ./scripts/package-download.sh
-    - run: mkdir -p ${{env.BUILD_OUTPUT_PATH}}
+        - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+        - run: ./scripts/package-download.sh
+        - run: mkdir -p ${{env.BUILD_OUTPUT_PATH}}
     
   qmake_with_cmd:
+    runs-on: windows-2019
     steps:
-    - name: set up develop env and qmake install
       shell: cmd
-    - run: ./scripts/build.bat
+        - run: ./scripts/build.bat
 
 
