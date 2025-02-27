@@ -32,9 +32,12 @@ jobs:
       - shell: cmd
         run: c:; cd C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build; vcvarsall.bat x64
       - shell: cmd
-        run: set path=%path%;$GITHUB_WORKSPACE\package\Qt_Static-6.6.0\bin
+        run: set path=%path%;$GITHUB_WORKSPACE\package\Qt_Static-6.6.0\bin;set path=%path%;$GITHUB_WORKSPACE\package\Jom;
       - shell: cmd
         run: d:; cd $GITHUB_WORKSPACE;qmake .\installerfw.pro -spec win32-msvc "CONFIG+=qtquickcompiler"  -o ${{ env.BUILD_OUTPUT_PATH }}
+      - shell: cmd
+        run: jom.exe qmake_all; jom.exe -j4 -f Makefile
+
         
         
 
