@@ -36,7 +36,7 @@ jobs:
       - shell: cmd
         run: d:; cd $GITHUB_WORKSPACE;qmake .\installerfw.pro -spec win32-msvc "CONFIG+=qtquickcompiler"  -o ${{ env.BUILD_OUTPUT_PATH }}
       - shell: cmd
-        run: jom.exe qmake_all; jom.exe -j4 -f Makefile
+        run: $GITHUB_WORKSPACE\package\Jom\jom.exe qmake_all; $GITHUB_WORKSPACE\package\Jom\jom.exe -j4 -f Makefile
 
         
         
