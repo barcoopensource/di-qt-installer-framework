@@ -4,7 +4,7 @@ on:
   push
   
 env:
-  BUILD_OUTPUT_PATH: ./build_output
+  BUILD_OUTPUT_PATH: $GITHUB_WORKSPACE/build_output
 
 # Prevent running multiple-runners per workflow-file per event-name per branch per github-user (/ref)
 # Ex. multiple changes are commited on the same PR/branch in a very short timespan,
