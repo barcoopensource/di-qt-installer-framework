@@ -37,7 +37,13 @@ jobs:
         run: d:; cd $GITHUB_WORKSPACE;qmake .\installerfw.pro -spec win32-msvc "CONFIG+=qtquickcompiler"  -o ${{ env.BUILD_OUTPUT_PATH }}
       - shell: cmd
         run: d:; cd $GITHUB_WORKSPACE;.\package\Jom\jom.exe qmake_all; .\package\Jom\jom.exe -j4 -f Makefile
-
+      - uses: actions/upload-artifact@v4
+        id: artifact-upload-step
+        with:
+           name: installer-artifact
+           path: ./build_output/
+      - name: Output artifact url
+        run:  echo 'Artifact url is ${{ steps.artifact-upload-step.outputs.artifact-url }}'
         
         
 
