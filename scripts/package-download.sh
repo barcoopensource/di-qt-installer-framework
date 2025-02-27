@@ -28,10 +28,14 @@ XZ_ASSET="xz-package.zip"
 
 ZLIB_REPO="JasonSun0593/zlib"
 ZLIB_VERSION="1.0.0"
-ZLIB_ASSET="zip-package.zip"
+ZLIB_ASSET="zlib-package.zip"
 
 echo "Cleanup previous build"
 rm -rf "$QT_STAT_PKG"
+rm -rf "$QT_JOM_PKG"
+rm -rf "$BZIP2_PKG"
+rm -rf "$XZ_PKG"
+rm -rf "$ZLIB_PKG"
 mkdir -p "$PKG"
 
 echo "Fetching Qt_Static-6.6.0 package"
