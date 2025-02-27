@@ -31,23 +31,8 @@ jobs:
     steps:
       - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
       - shell: cmd
-        run: c:; cd C:\Program Files (x86)\Microsoft Visual Studio\2019\Enterprise\VC\Auxiliary\Build; vcvarsall.bat x64
-      - shell: cmd
-        run: set path=%path%;$GITHUB_WORKSPACE\package\Qt_Static-6.6.0\bin;set path=%path%;$GITHUB_WORKSPACE\package\Jom;
+        run: .\scripts\installer-build.bat
         
-      - name: check qmake location
-        shell: cmd
-        id: qmake-v
-        run: echo "QMAKE_VERSION = 'qmake -v'" >> "$GITHUB_OUTPUT"
-      - name: Get qmake location
-        env:
-          OUTPUT_QMAKE_VERSION: ${{ steps.qmake-v.outputs.QMAKE_VERSION }}
-        run: echo "$OUTPUT_QMAKE_VERSION"
-        
-      - shell: cmd
-        run: d:; cd $GITHUB_WORKSPACE;qmake .\installerfw.pro -spec win32-msvc "CONFIG+=qtquickcompiler"  -o ${{ env.BUILD_OUTPUT_PATH }}
-      - shell: cmd
-        run: d:; cd $GITHUB_WORKSPACE\build_output;.\package\Jom\jom.exe qmake_all; .\package\Jom\jom.exe -j4 -f Makefile
       - uses: actions/upload-artifact@v4
         id: artifact-upload-step
         with:
