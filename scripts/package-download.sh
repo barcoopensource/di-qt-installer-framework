@@ -40,20 +40,27 @@ mkdir -p "$PKG"
 
 echo "Fetching Qt_Static-6.6.0 package"
 gh release download --repo "$QT_STAT_REPO" "$QT_STAT_VERSION" \
-    --pattern "$QT_STAT_ASSET" --dir "$QT_STAT_PKG"
+    --pattern "$QT_STAT_ASSET" --output "$QT_STAT_PKG.zip"
 	
 echo "Fetching jom package"
 gh release download --repo "$QT_JOM_REPO" "$QT_JOM_VERSION" \
-    --pattern "$QT_JOM_ASSET" --dir "$QT_JOM_PKG"
+    --pattern "$QT_JOM_ASSET" --output "$QT_JOM_PKG.zip"
 	
 echo "Fetching bzip2 package"
 gh release download --repo "$BZIP2_REPO" "$BZIP2_VERSION" \
-    --pattern "$BZIP2_ASSET" --dir "$BZIP2_PKG"
+    --pattern "$BZIP2_ASSET" --output "$BZIP2_PKG.zip"
 	
 echo "Fetching xz package"
 gh release download --repo "$XZ_REPO" "$XZ_VERSION" \
-    --pattern "$XZ_ASSET" --dir "$XZ_PKG"
+    --pattern "$XZ_ASSET" --output "$XZ_PKG.zip"
 
 echo "Fetching zlib package"
 gh release download --repo "$ZLIB_REPO" "$ZLIB_VERSION" \
-    --pattern "$ZLIB_ASSET" --dir "$ZLIB_PKG"
+    --pattern "$ZLIB_ASSET" --output "$ZLIB_PKG.zip"
+
+echo "Unzipping packages"	
+unzip "$QT_STAT_PKG.zip" -d "$QT_STAT_PKG"
+unzip "$QT_JOM_PKG.zip" -d "$QT_JOM_PKG"
+unzip "$BZIP2_PKG.zip" -d "$BZIP2_PKG"
+unzip "$XZ_PKG.zip" -d "$XZ_PKG"
+unzip "$ZLIB_PKG.zip" -d "$ZLIB_PKG"
