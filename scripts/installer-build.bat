@@ -8,11 +8,10 @@ set path=%path%;%~dp0..\package\Qt_Static-6.6.0\bin
 set path=%path%;%~dp0..\package\Jom;
 
 REM qmake
-qmake -v
-qmake .\installerfw.pro -spec win32-msvc "CONFIG+=qtquickcompiler"  -o %~dp0..\build_output
+%~dp0..\package\Qt_Static-6.6.0\bin\qmake.exe .\installerfw.pro -spec win32-msvc "CONFIG+=qtquickcompiler"  -o %~dp0..\build_output
 
 REM jom
 cd build_output
-jom.exe qmake_all
-jom.exe -j4 -f Makefile
+%~dp0..\package\Jom\jom.exe qmake_all
+%~dp0..\package\Jom\jom.exe -j4 -f Makefile
 EndLocal
