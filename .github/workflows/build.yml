@@ -2,6 +2,9 @@ name: Build package
 
 on:
   push
+  release:
+    types:
+      - created
   
 env:
   BUILD_OUTPUT_PATH: build_output
@@ -37,6 +40,22 @@ jobs:
             path: build_output/
         - name: Output artifact url
           run:  echo 'Artifact url is ${{ steps.artifact-upload-step.outputs.artifact-url }}'
+  
+  release package:
+    needs: build_installer
+    if: github.event_name == 'release'
+    steps:
+        - run: mkdir -p dist
+        - uses: actions/download-artifact@fa0a91b85d4f404e444e00e005971372dc801d16 # v4.1.8
+        with:
+          name: installer-artifact
+          path: dist/
+        - run: cd dist; zip -r ../installer-package.zip .
+        - run:
+          gh release upload ${{ github.event.release.tag_name }}
+          installer-package.zip
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
         
 
