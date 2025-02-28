@@ -55,10 +55,10 @@ jobs:
               path: dist/
         - run: cd dist; zip -r ../installer-package.zip .
         - run:
-          gh release upload ${{ github.event.release.tag_name }}
-          installer-package.zip
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              gh release upload ${{ github.event.release.tag_name }}
+              installer-package.zip
+          env:
+              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         
         
 
