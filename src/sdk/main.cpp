@@ -151,7 +151,8 @@ int main(int argc, char *argv[])
     if (mutually.isEmpty()) {
         mutually = QInstaller::checkMutualOptions(parser, QStringList()
             << CommandLineOptions::scSystemProxyLong
-            << CommandLineOptions::scNoProxyLong);
+            << CommandLineOptions::scNoProxyLong
+            << CommandLineOptions::scManualProxyLong);
     }
     if (mutually.isEmpty()) {
         mutually = QInstaller::checkMutualOptions(parser, QStringList()
@@ -164,6 +165,13 @@ int main(int argc, char *argv[])
             << CommandLineOptions::scStartServerLong
             << CommandLineOptions::scStartClientLong);
     }
+
+    if (mutually.isEmpty()) {
+        mutually = QInstaller::checkMutualOptions(parser, QStringList()
+            << CommandLineOptions::scHttpProxyHostNameLong
+            << CommandLineOptions::scFtpProxyHostNameLong);
+    }
+
     if (!mutually.isEmpty()) {
         sanityMessage = QString::fromLatin1("The following options are mutually exclusive: %1.")
             .arg(mutually.join(QLatin1String(", ")));
@@ -310,7 +318,7 @@ int main(int argc, char *argv[])
             QNetworkProxyFactory::setUseSystemConfiguration(true);
         }
 
-        if (parser.isSet(CommandLineOptions::scNoProxyLong))
+        if ((parser.isSet(CommandLineOptions::scNoProxyLong)) || (parser.isSet(CommandLineOptions::scManualProxyLong)))
             QNetworkProxyFactory::setUseSystemConfiguration(false);
 
         const SelfRestarter restarter(argc, argv);
