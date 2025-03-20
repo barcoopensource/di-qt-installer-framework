@@ -279,6 +279,17 @@ public:
                 const QString httpProxyName = m_parser.value(CommandLineOptions::scHttpProxyHostNameLong);
                 bool isValid;
                 const quint16 portId = m_parser.value(CommandLineOptions::scPortIdLong).toInt(&isValid);
+                if(httpProxyName.isEmpty())
+                {
+                    errorMessage = QObject::tr("Manual proxy name empty.");
+                    return false;
+                }
+                if(isValid == false)
+                {
+                    errorMessage = QObject::tr("Manual proxy portId empty.");
+                    return false;
+                }
+                QSharedPointer<QNetworkProxy> httpProxy = QSharedPointer<QNetworkProxy> (new QNetworkProxy(QNetworkProxy::HttpProxy, httpProxyName, portId));
                 m_core->settings().setHttpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, httpProxyName, portId));
                 KDUpdater::FileDownloaderFactory::instance().setProxyFactory(m_core->proxyFactory());
 
@@ -294,6 +305,17 @@ public:
                 const QString ftpProxyName = m_parser.value(CommandLineOptions::scFtpProxyHostNameLong);
                 bool isValid;
                 const quint16 portId = m_parser.value(CommandLineOptions::scPortIdLong).toInt(&isValid);
+                if(ftpProxyName.isEmpty())
+                {
+                    errorMessage = QObject::tr("Manual proxy name empty.");
+                    return false;
+                }
+                if(isValid == false)
+                {
+                    errorMessage = QObject::tr("Manual proxy portId empty.");
+                    return false;
+                }
+                QSharedPointer<QNetworkProxy> ftpProxy = QSharedPointer<QNetworkProxy> (new QNetworkProxy(QNetworkProxy::HttpProxy, ftpProxyName, portId));
                 m_core->settings().setFtpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, ftpProxyName, portId));
                 KDUpdater::FileDownloaderFactory::instance().setProxyFactory(m_core->proxyFactory());
 
