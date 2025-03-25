@@ -289,7 +289,6 @@ public:
                     errorMessage = QObject::tr("Manual proxy portId empty.");
                     return false;
                 }
-                QSharedPointer<QNetworkProxy> httpProxy = QSharedPointer<QNetworkProxy> (new QNetworkProxy(QNetworkProxy::HttpProxy, httpProxyName, portId));
                 m_core->settings().setHttpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, httpProxyName, portId));
                 KDUpdater::FileDownloaderFactory::instance().setProxyFactory(m_core->proxyFactory());
 
@@ -315,7 +314,6 @@ public:
                     errorMessage = QObject::tr("Manual proxy portId empty.");
                     return false;
                 }
-                QSharedPointer<QNetworkProxy> ftpProxy = QSharedPointer<QNetworkProxy> (new QNetworkProxy(QNetworkProxy::HttpProxy, ftpProxyName, portId));
                 m_core->settings().setFtpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, ftpProxyName, portId));
                 KDUpdater::FileDownloaderFactory::instance().setProxyFactory(m_core->proxyFactory());
 

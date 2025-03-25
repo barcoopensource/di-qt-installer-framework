@@ -317,6 +317,10 @@ int main(int argc, char *argv[])
             // Make sure we honor the system's proxy settings
             QNetworkProxyFactory::setUseSystemConfiguration(true);
         }
+        else    //make sure the system config set to false when no proxy para passed otherwise it may interfere with settings read from network.xml
+        {
+            QNetworkProxyFactory::setUseSystemConfiguration(false);
+        }
 
         if ((parser.isSet(CommandLineOptions::scNoProxyLong)) || (parser.isSet(CommandLineOptions::scManualProxyLong)))
             QNetworkProxyFactory::setUseSystemConfiguration(false);
