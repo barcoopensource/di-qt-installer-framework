@@ -19,6 +19,7 @@ isEqual(IFW_DISABLE_TRANSLATIONS, 1) {
 }
 
 # Still default to LZMA SDK if nothing is defined by user
+CONFIG += libarchive
 !contains(CONFIG, libarchive|lzmasdk): CONFIG += lzmasdk
 
 CONFIG(lzmasdk) {
@@ -114,6 +115,14 @@ INCLUDEPATH += \
     $$IFW_SOURCE_TREE/src/libs/kdtools \
     $$IFW_SOURCE_TREE/src/libs/ifwtools \
     $$IFW_SOURCE_TREE/src/libs/installer
+
+INCLUDEPATH += $$PWD/package/bzip2/include
+INCLUDEPATH += $$PWD/package/xz/include
+INCLUDEPATH += $$PWD/package/zlib/include
+
+IFW_BZIP2_LIBRARY = $$PWD/package/bzip2/lib/bz2_static.lib
+IFW_LZMA_LIBRARY = $$PWD/package/xz/lib/lzma.lib
+IFW_ZLIB_LIBRARY = $$PWD/package/zlib/lib/zlibstatic.lib
 
 CONFIG(libarchive): INCLUDEPATH += $$IFW_SOURCE_TREE/src/libs/3rdparty/libarchive
 
