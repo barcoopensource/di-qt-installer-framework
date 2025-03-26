@@ -27,7 +27,7 @@ mkdir -p "$PKG"
 
 
 echo "Fetching jom package"
-wget -O "$QT_JOM_PKG.zip" "https://download.qt.io/official_releases/jom/jom.zip"
+curl -L -o "$QT_JOM_PKG.zip" "https://download.qt.io/official_releases/jom/jom.zip"
 
 echo "Fetching Qt_Static-6.6.0 package"
 gh release download --repo "$REPO" "$VERSION" \

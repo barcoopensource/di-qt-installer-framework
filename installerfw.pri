@@ -153,6 +153,8 @@ macx:LIBS += -framework Carbon -framework Security
     contains(QT_CONFIG, shared): CONFIG += shared
 }
 
+CONFIG += static
+
 QT += uitools core-private
 CONFIG(static, static|shared) {
     win32:lessThan(QT_MAJOR_VERSION, 6):QT += winextras
