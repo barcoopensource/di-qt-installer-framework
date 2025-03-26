@@ -119,6 +119,31 @@ CommandLineParser::CommandLineParser()
     addOption(QCommandLineOption(QStringList()
         << CommandLineOptions::scNoProxyShort << CommandLineOptions::scNoProxyLong,
         QLatin1String("Do not use system proxy.")));
+    addOption(QCommandLineOption(QStringList()
+        << CommandLineOptions::scManualProxyShort << CommandLineOptions::scManualProxyLong,
+        QLatin1String("Use manual proxy.")));
+
+    // Custom Proxy options
+    addOption(QCommandLineOption(QStringList()
+        /*<< CommandLineOptions::scHttpProxyHostNameShort*/ << CommandLineOptions::scHttpProxyHostNameLong,
+        QLatin1String("Use Http proxy."),
+        QLatin1String("ProxyName")));
+    addOption(QCommandLineOption(QStringList()
+        /*<< CommandLineOptions::scFtpProxyHostNameShort*/ << CommandLineOptions::scFtpProxyHostNameLong,
+        QLatin1String("Use Ftp proxy."),
+        QLatin1String("ProxyName")));
+    addOption(QCommandLineOption(QStringList()
+        /*<< CommandLineOptions::scPortIdShort*/ << CommandLineOptions::scPortIdLong,
+        QLatin1String("Port id."),
+        QLatin1String("PortId")));
+    addOption(QCommandLineOption(QStringList()
+        /*<< CommandLineOptions::scProxyUserNameShort*/ << CommandLineOptions::scProxyUserNameLong,
+        QLatin1String("Proxy Username."),
+        QLatin1String("Username")));
+    addOption(QCommandLineOption(QStringList()
+        /*<< CommandLineOptions::scProxyPasswordShort*/ << CommandLineOptions::scProxyPasswordLong,
+        QLatin1String("Proxy password."),
+        QLatin1String("Password")));
 
     // Starting mode options
     addOption(QCommandLineOption(QStringList()
