@@ -43,8 +43,7 @@ gh release download --repo "$QT_STAT_REPO" "$QT_STAT_VERSION" \
     --pattern "$QT_STAT_ASSET" --output "$QT_STAT_PKG.zip"
 	
 echo "Fetching jom package"
-gh release download --repo "$QT_JOM_REPO" "$QT_JOM_VERSION" \
-    --pattern "$QT_JOM_ASSET" --output "$QT_JOM_PKG.zip"
+curl -L -o "$QT_JOM_PKG.zip" "https://download.qt.io/official_releases/jom/jom.zip"
 	
 echo "Fetching bzip2 package"
 gh release download --repo "$BZIP2_REPO" "$BZIP2_VERSION" \
