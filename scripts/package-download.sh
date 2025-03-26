@@ -4,10 +4,9 @@ set -e # Error handling mechanism inside this script
 ROOT=$(dirname "$(dirname "${BASH_SOURCE[@]}")")
 PKG="$ROOT/package"
 
-REPO = "barcoopensource/di-qif-helper"
-VERSION = "1.0.0"
+REPO="barcoopensource/di-qif-helper"
+VERSION="1.0.0"
 QT_STAT_ASSET="static-qt-660.zip"
-QT_JOM_ASSET="jom.zip"
 BZIP2_ASSET="bzip2.zip"
 XZ_ASSET="xz.zip"
 ZLIB_ASSET="zlib.zip"
@@ -26,13 +25,13 @@ rm -rf "$XZ_PKG"
 rm -rf "$ZLIB_PKG"
 mkdir -p "$PKG"
 
+
+echo "Fetching jom package"
+wget -O "$QT_JOM_PKG.zip" "https://download.qt.io/official_releases/jom/jom.zip"
+
 echo "Fetching Qt_Static-6.6.0 package"
 gh release download --repo "$REPO" "$VERSION" \
     --pattern "$QT_STAT_ASSET" --output "$QT_STAT_PKG.zip"
-	
-echo "Fetching jom package"
-gh release download --repo "$REPO" "$VERSION" \
-    --pattern "$QT_JOM_ASSET" --output "$QT_JOM_PKG.zip"
 	
 echo "Fetching bzip2 package"
 gh release download --repo "$REPO" "$VERSION" \
