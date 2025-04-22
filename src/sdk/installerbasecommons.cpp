@@ -50,6 +50,7 @@ InstallerGui::InstallerGui(PackageManagerCore *core)
     }
 
     setPage(PackageManagerCore::Introduction, new IntroductionPage(core));
+    setPage(PackageManagerCore::ProxySetting, new ProxySettingPage(core));
     setPage(PackageManagerCore::TargetDirectory, new TargetDirectoryPage(core));
     setPage(PackageManagerCore::ComponentSelection, new ComponentSelectionPage(core));
     setPage(PackageManagerCore::LicenseCheck, new LicenseAgreementPage(core));

@@ -81,6 +81,7 @@
 #include <QFileDialog>
 #include <QGroupBox>
 #include <QScreen>
+#include <QButtonGroup>
 
 #ifdef Q_OS_WIN
 # include <qt_windows.h>
@@ -3258,6 +3259,275 @@ void RestartPage::entering()
 */
 void RestartPage::leaving()
 {
+}
+
+ProxySettingPage::ProxySettingPage(PackageManagerCore *core)
+    : PackageManagerPage(core)
+    , m_noProxy(nullptr)
+    , m_systemProxy(nullptr)
+    , m_manualProxy(nullptr)
+    , m_httpBox(nullptr)
+    , m_ftpBox(nullptr)
+    , m_labelHttpHostName(nullptr)
+    , m_labelHttpPort(nullptr)
+    , m_ifHttpAuthenticate(nullptr)
+    , m_labelHttpUserName(nullptr)
+    , m_labelHttpPassword(nullptr)
+    , m_lineHttpHostName(nullptr)
+    , m_lineHttpPort(nullptr)
+    , m_lineHttpUserName(nullptr)
+    , m_lineHttpPassword(nullptr)
+    , m_labelFtpHostName(nullptr)
+    , m_labelFtpPort(nullptr)
+    , m_ifFtpAuthenticate(nullptr)
+    , m_labelFtpUserName(nullptr)
+    , m_labelFtpPassword(nullptr)
+    , m_lineFtpHostName(nullptr)
+    , m_lineFtpPort(nullptr)
+    , m_lineFtpUserName(nullptr)
+    , m_lineFtpPassword(nullptr)
+{
+    setPixmap(QWizard::WatermarkPixmap, QPixmap());
+    setObjectName(QLatin1String("ProxySettingPage"));
+    setColoredTitle(tr("Proxy Setting"));
+
+    QVBoxLayout *layout = new QVBoxLayout(this);
+    setLayout(layout);
+
+    // proxy type part
+    m_noProxy = new QRadioButton(tr("&No Proxy"), this);
+    m_noProxy->setObjectName(QLatin1String("NoProxyRadioButton"));
+    layout->addWidget(m_noProxy);
+
+    m_manualProxy = new QRadioButton(tr("&Manual Proxy"), this);
+    m_manualProxy->setObjectName(QLatin1String("ManualProxyRadioButton"));
+    layout->addWidget(m_manualProxy);
+
+    m_systemProxy = new QRadioButton(tr("&System Proxy"), this);
+    m_systemProxy->setObjectName(QLatin1String("SystemProxyRadioButton"));
+
+
+
+    QButtonGroup *BtnGroupProxyType = new QButtonGroup();
+    BtnGroupProxyType->addButton(m_noProxy,0);
+    BtnGroupProxyType->addButton(m_systemProxy,1);
+    BtnGroupProxyType->addButton(m_manualProxy,2);
+    BtnGroupProxyType->setExclusive(true);
+
+    QHBoxLayout *groupBoxLayout = new QHBoxLayout;
+    QGridLayout *httpBoxLayout = new QGridLayout;
+    QGridLayout *ftpBoxLayout = new QGridLayout;
+
+    // http para groupbox
+    m_labelHttpHostName = new QLabel(this);
+    m_labelHttpHostName->setWordWrap(true);
+    m_labelHttpHostName->setObjectName(QLatin1String("HttpHostname"));
+    m_labelHttpHostName->setText(tr("Hostname"));
+
+    m_labelHttpPort = new QLabel(this);
+    m_labelHttpPort->setWordWrap(true);
+    m_labelHttpPort->setObjectName(QLatin1String("HttpPort"));
+    m_labelHttpPort->setText(tr("Port"));
+
+    m_lineHttpHostName = new QLineEdit(this);
+    m_lineHttpHostName->setObjectName(QLatin1String("HttpHostNameLineEdit"));
+    m_lineHttpPort = new QLineEdit(this);
+    m_lineHttpPort->setObjectName(QLatin1String("HttpPortLineEdit"));
+
+    httpBoxLayout->addWidget(m_labelHttpHostName,0,0,1,1);
+    httpBoxLayout->addWidget(m_lineHttpHostName,0,1,1,3);
+    httpBoxLayout->addWidget(m_labelHttpPort,1,0,1,1);
+    httpBoxLayout->addWidget(m_lineHttpPort,1,1,1,3);
+
+    m_ifHttpAuthenticate = new QRadioButton(tr("&Use authentication"), this);
+    m_ifHttpAuthenticate->setObjectName(QLatin1String("ifHttpAuthenticationRadioButton"));
+
+    m_labelHttpUserName = new QLabel(this);
+    m_labelHttpUserName->setWordWrap(true);
+    m_labelHttpUserName->setObjectName(QLatin1String("HttpUsername"));
+    m_labelHttpUserName->setText(tr("Username"));
+
+    m_labelHttpPassword = new QLabel(this);
+    m_labelHttpPassword->setWordWrap(true);
+    m_labelHttpPassword->setObjectName(QLatin1String("HttpPassword"));
+    m_labelHttpPassword->setText(tr("Password"));
+
+    m_lineHttpUserName = new QLineEdit(this);
+    m_lineHttpUserName->setObjectName(QLatin1String("HttpUserNameLineEdit"));
+    m_lineHttpPassword = new QLineEdit(this);
+    m_lineHttpPassword->setObjectName(QLatin1String("HttpPasswordLineEdit"));
+
+    httpBoxLayout->addWidget(m_ifHttpAuthenticate,2,1,1,3);
+    httpBoxLayout->addWidget(m_labelHttpUserName,3,0,1,1);
+    httpBoxLayout->addWidget(m_lineHttpUserName,3,1,1,3);
+    httpBoxLayout->addWidget(m_labelHttpPassword,4,0,1,1);
+    httpBoxLayout->addWidget(m_lineHttpPassword,4,1,1,3);
+
+    m_httpBox = new QGroupBox(this);
+    m_httpBox->setTitle(QLatin1String("Http"));
+    m_httpBox->setLayout(httpBoxLayout);
+
+    // ftp para groupbox
+    m_labelFtpHostName = new QLabel(this);
+    m_labelFtpHostName->setWordWrap(true);
+    m_labelFtpHostName->setObjectName(QLatin1String("FtpHostname"));
+    m_labelFtpHostName->setText(tr("Hostname"));
+
+    m_labelFtpPort = new QLabel(this);
+    m_labelFtpPort->setWordWrap(true);
+    m_labelFtpPort->setObjectName(QLatin1String("FtpPort"));
+    m_labelFtpPort->setText(tr("Port"));
+
+    m_lineFtpHostName = new QLineEdit(this);
+    m_lineFtpHostName->setObjectName(QLatin1String("FtpHostNameLineEdit"));
+    m_lineFtpPort = new QLineEdit(this);
+    m_lineFtpPort->setObjectName(QLatin1String("FtpPortLineEdit"));
+
+    ftpBoxLayout->addWidget(m_labelFtpHostName,0,0,1,1);
+    ftpBoxLayout->addWidget(m_lineFtpHostName,0,1,1,3);
+    ftpBoxLayout->addWidget(m_labelFtpPort,1,0,1,1);
+    ftpBoxLayout->addWidget(m_lineFtpPort,1,1,1,3);
+
+    m_ifFtpAuthenticate = new QRadioButton(tr("&Use authentication"), this);
+    m_ifFtpAuthenticate->setObjectName(QLatin1String("ifHttpAuthenticationRadioButton"));
+
+    m_labelFtpUserName = new QLabel(this);
+    m_labelFtpUserName->setWordWrap(true);
+    m_labelFtpUserName->setObjectName(QLatin1String("FtpUsername"));
+    m_labelFtpUserName->setText(tr("Username"));
+
+    m_labelFtpPassword = new QLabel(this);
+    m_labelFtpPassword->setWordWrap(true);
+    m_labelFtpPassword->setObjectName(QLatin1String("FtpPassword"));
+    m_labelFtpPassword->setText(tr("Password"));
+
+    m_lineFtpUserName = new QLineEdit(this);
+    m_lineFtpUserName->setObjectName(QLatin1String("FtpUserNameLineEdit"));
+    m_lineFtpPassword = new QLineEdit(this);
+    m_lineFtpPassword->setObjectName(QLatin1String("FtpPasswordLineEdit"));
+
+    ftpBoxLayout->addWidget(m_ifFtpAuthenticate,2,1,1,3);
+    ftpBoxLayout->addWidget(m_labelFtpUserName,3,0,1,1);
+    ftpBoxLayout->addWidget(m_lineFtpUserName,3,1,1,3);
+    ftpBoxLayout->addWidget(m_labelFtpPassword,4,0,1,1);
+    ftpBoxLayout->addWidget(m_lineFtpPassword,4,1,1,3);
+
+    m_ftpBox = new QGroupBox(this);
+    m_ftpBox->setTitle(QLatin1String("Ftp"));
+    m_ftpBox->setLayout(ftpBoxLayout);
+
+    //groupbox layout
+    groupBoxLayout->addWidget(m_httpBox);
+    groupBoxLayout->addWidget(m_ftpBox);
+
+    layout->addLayout(groupBoxLayout);
+    layout->addWidget(m_systemProxy);
+
+    setNetworkGroupboxVisible(false);
+    setHttpAuthenEnabled(false);
+    setFtpAuthenEnabled(false);
+    connect(m_manualProxy, &QAbstractButton::toggled,
+            this, &ProxySettingPage::setNetworkGroupboxVisible);
+    connect(m_ifHttpAuthenticate, &QAbstractButton::toggled,
+            this, &ProxySettingPage::setHttpAuthenEnabled);
+    connect(m_ifFtpAuthenticate, &QAbstractButton::toggled,
+            this, &ProxySettingPage::setFtpAuthenEnabled);
+}
+
+void ProxySettingPage::setNetworkGroupboxVisible(bool value)
+{
+    m_httpBox->setVisible(value);
+    m_ftpBox->setVisible(value);
+}
+
+void ProxySettingPage::setHttpAuthenEnabled(bool value)
+{
+    m_lineHttpUserName->setEnabled(value);
+    m_lineHttpPassword->setEnabled(value);
+}
+
+void ProxySettingPage::setFtpAuthenEnabled(bool value)
+{
+    m_lineFtpUserName->setEnabled(value);
+    m_lineFtpPassword->setEnabled(value);
+}
+
+void ProxySettingPage::entering()
+{
+    PackageManagerCore *core = packageManagerCore();
+    const Settings &settings = core->settings();
+    switch (settings.proxyType()) {
+    case Settings::NoProxy:
+        m_noProxy->setChecked(true);
+        break;
+    case Settings::SystemProxy:
+        m_systemProxy->setChecked(true);
+        break;
+    case Settings::UserDefinedProxy:
+        m_manualProxy->setChecked(true);
+        break;
+    default:
+        m_noProxy->setChecked(true);
+        Q_ASSERT_X(false, Q_FUNC_INFO, "Unknown proxy type given!");
+    }
+    const QNetworkProxy &ftpProxy = settings.ftpProxy();
+    m_lineFtpHostName->setText(ftpProxy.hostName());
+    m_lineFtpPort->setText(QString::number(ftpProxy.port()));
+    m_ifFtpAuthenticate->setChecked((!ftpProxy.user().isEmpty()) && (!ftpProxy.password().isEmpty()));
+    m_lineFtpUserName->setText(ftpProxy.user());
+    m_lineFtpPassword->setText(ftpProxy.password());
+
+    const QNetworkProxy &httpProxy = settings.httpProxy();
+    m_lineHttpHostName->setText(httpProxy.hostName());
+    m_lineHttpPort->setText(QString::number(httpProxy.port()));
+    m_ifHttpAuthenticate->setChecked((!httpProxy.user().isEmpty()) && (!httpProxy.password().isEmpty()));
+    m_lineHttpUserName->setText(httpProxy.user());
+    m_lineHttpPassword->setText(httpProxy.password());
+
+}
+
+void ProxySettingPage::leaving()
+{
+    PackageManagerCore *core = packageManagerCore();
+    Settings &settings = core->settings();
+
+    // update proxy type
+    settings.setProxyType(Settings::NoProxy);
+    if (m_systemProxy->isChecked())
+        settings.setProxyType(Settings::SystemProxy);
+    else if (m_manualProxy->isChecked())
+        settings.setProxyType(Settings::UserDefinedProxy);
+
+    if (settings.proxyType() == Settings::UserDefinedProxy) {
+        // update ftp proxy settings
+        if((!m_lineFtpHostName->text().isEmpty()) && (!m_lineFtpPort->text().isEmpty()))
+        {
+            if(m_ifFtpAuthenticate->isChecked())
+            {
+                settings.setFtpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, m_lineFtpHostName->text(),
+                                                   m_lineFtpPort->text().toInt(),m_lineFtpUserName->text(),m_lineFtpPassword->text()));
+            }
+            else
+            {
+                settings.setFtpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, m_lineFtpHostName->text(),
+                                              m_lineFtpPort->text().toInt()));
+            }
+        }
+        // update http proxy settings
+        if((!m_lineHttpHostName->text().isEmpty()) && (!m_lineHttpPort->text().isEmpty()))
+        {
+            if(m_ifHttpAuthenticate->isChecked())
+            {
+                settings.setHttpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, m_lineHttpHostName->text(),
+                                                    m_lineHttpPort->text().toInt(),m_lineHttpUserName->text(),m_lineHttpPassword->text()));
+            }
+            else
+            {
+                settings.setHttpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, m_lineHttpHostName->text(),
+                                               m_lineHttpPort->text().toInt()));
+            }
+        }
+    }
 }
 
 #include "packagemanagergui.moc"

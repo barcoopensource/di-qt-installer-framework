@@ -50,6 +50,7 @@ class QProgressBar;
 class QRadioButton;
 class QTextBrowser;
 class QWinTaskbarButton;
+class QGroupBox;
 QT_END_NAMESPACE
 
 namespace QInstaller {
@@ -281,6 +282,58 @@ private:
 #ifdef Q_OS_WIN
     QWinTaskbarButton *m_taskButton;
 #endif
+};
+
+
+// -- ProxySettingPage
+class INSTALLER_EXPORT ProxySettingPage : public PackageManagerPage
+{
+    Q_OBJECT
+
+public:
+    explicit ProxySettingPage(PackageManagerCore *core);
+
+
+private Q_SLOTS:
+    void setNetworkGroupboxVisible(bool value);
+    void setHttpAuthenEnabled(bool value);
+    void setFtpAuthenEnabled(bool value);
+
+private:
+
+    void entering() override;
+    void leaving() override;
+
+
+private:
+
+    QRadioButton *m_noProxy;
+    QRadioButton *m_systemProxy;
+    QRadioButton *m_manualProxy;
+
+    QGroupBox *m_httpBox;
+    QGroupBox *m_ftpBox;
+
+    QLabel *m_labelHttpHostName;
+    QLabel *m_labelHttpPort;
+    QRadioButton *m_ifHttpAuthenticate;
+    QLabel *m_labelHttpUserName;
+    QLabel *m_labelHttpPassword;
+    QLineEdit *m_lineHttpHostName;
+    QLineEdit *m_lineHttpPort;
+    QLineEdit *m_lineHttpUserName;
+    QLineEdit *m_lineHttpPassword;
+
+    QLabel *m_labelFtpHostName;
+    QLabel *m_labelFtpPort;
+    QRadioButton *m_ifFtpAuthenticate;
+    QLabel *m_labelFtpUserName;
+    QLabel *m_labelFtpPassword;
+    QLineEdit *m_lineFtpHostName;
+    QLineEdit *m_lineFtpPort;
+    QLineEdit *m_lineFtpUserName;
+    QLineEdit *m_lineFtpPassword;
+
 };
 
 
