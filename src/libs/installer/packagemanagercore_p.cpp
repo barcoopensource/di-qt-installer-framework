@@ -201,6 +201,7 @@ PackageManagerCorePrivate::PackageManagerCorePrivate(PackageManagerCore *core)
     , m_allowCompressedRepositoryInstall(false)
 #endif
     , m_connectedOperations(0)
+    , m_processGetProxyUser(nullptr)
 {
 }
 
@@ -1046,22 +1047,6 @@ void PackageManagerCorePrivate::writeMaintenanceConfigFiles()
         writer.writeStartDocument();
 
         writer.writeStartElement(QLatin1String("Network"));
-            writer.writeTextElement(QLatin1String("ProxyType"), QString::number(m_data.settings().proxyType()));
-            writer.writeStartElement(QLatin1String("Ftp"));
-                const QNetworkProxy &ftpProxy = m_data.settings().ftpProxy();
-                writer.writeTextElement(QLatin1String("Host"), ftpProxy.hostName());
-                writer.writeTextElement(QLatin1String("Port"), QString::number(ftpProxy.port()));
-                writer.writeTextElement(QLatin1String("Username"), ftpProxy.user());
-                writer.writeTextElement(QLatin1String("Password"), ftpProxy.password());
-            writer.writeEndElement();
-            writer.writeStartElement(QLatin1String("Http"));
-                const QNetworkProxy &httpProxy = m_data.settings().httpProxy();
-                writer.writeTextElement(QLatin1String("Host"), httpProxy.hostName());
-                writer.writeTextElement(QLatin1String("Port"), QString::number(httpProxy.port()));
-                writer.writeTextElement(QLatin1String("Username"), httpProxy.user());
-                writer.writeTextElement(QLatin1String("Password"), httpProxy.password());
-            writer.writeEndElement();
-
             writer.writeStartElement(QLatin1String("Repositories"));
             foreach (const Repository &repo, m_data.settings().userRepositories()) {
                 writer.writeStartElement(QLatin1String("Repository"));
@@ -1072,17 +1057,75 @@ void PackageManagerCorePrivate::writeMaintenanceConfigFiles()
                 writer.writeEndElement();
             }
             writer.writeEndElement();
-            writer.writeTextElement(QLatin1String("LocalCachePath"), m_data.settings().localCachePath());
         writer.writeEndElement();
 
         file.write(outputStr.toUtf8());
     }
     setDefaultFilePermissions(&file, DefaultFilePermissions::NonExecutable);
+
+    //directly access disw.ini to write http mode , host and port
+    QSettingsWrapper configFile(CONF_PATH,QSettings::IniFormat);
+    if(m_data.settings().proxyType() == 0)
+    {
+        configFile.setValue(QStringLiteral("proxy/mode"),QStringLiteral("disabled"));
+    }
+    if(m_data.settings().proxyType() == 1)
+    {
+        configFile.setValue(QStringLiteral("proxy/mode"),QStringLiteral("system"));
+    }
+    if(m_data.settings().proxyType() == 2)
+    {
+        configFile.setValue(QStringLiteral("proxy/mode"),QStringLiteral("custom"));
+    }
+    //httpproxy para
+    const QNetworkProxy &httpProxy = m_data.settings().httpProxy();
+    configFile.beginGroup(QStringLiteral("proxy"));
+    configFile.setValue(QStringLiteral("host"),httpProxy.hostName());
+    configFile.setValue(QStringLiteral("port"),httpProxy.port());
+    configFile.endGroup();
+    //local cache path
+    configFile.beginGroup(QStringLiteral("installer-localcache"));
+    configFile.setValue(QStringLiteral("path"),m_data.settings().localCachePath());
+    configFile.endGroup();
+
+    //use configurator.exe to write http proxy paras to disw.ini
+    const QString configuratorFileArg = targetDir() + QLatin1String("/config/tools/configurator.exe");
+    if (!QFileInfo::exists(configuratorFileArg))
+    {
+        qCWarning(QInstaller::lcInstallerInstallLog) << "configurator path not exist";
+        return;
+    }
+
+    QStringList proxyArgList;
+    proxyArgList.append(configuratorFileArg);
+    proxyArgList << QLatin1String("--proxyuser") << httpProxy.user() << QLatin1String("--proxypwd") << httpProxy.password();
+    //use configurator to set proxyuser and proxypwd
+    QProcessWrapper *process = new QProcessWrapper();
+    QProcessEnvironment penv = QProcessEnvironment::systemEnvironment();
+    process->setEnvironment(penv.toStringList());
+    QObject::connect(process,&QProcessWrapper::readyRead, this, [=]{
+        QString outputStr = QString::fromUtf8(process->readAll());
+        qCInfo(QInstaller::lcInstallerInstallLog) << outputStr;
+    });
+
+    bool success = false;
+    process->start(proxyArgList.front(), proxyArgList.mid(1));
+    if (QThread::currentThread() == qApp->thread()) {
+        success = process->waitForStarted();
+    } else {
+        success = process->waitForFinished(-1);
+    }
+    if (!success)
+    {
+        qCWarning(QInstaller::lcInstallerInstallLog) << "configurator set proxy not successful";
+    }
+
+
 }
 
-void PackageManagerCorePrivate::readMaintenanceConfigFiles(const QString &targetDir)
+void PackageManagerCorePrivate::readMaintenanceConfigFiles(const QString &targetDirectory)
 {
-    QSettingsWrapper cfg(targetDir + QLatin1Char('/') + m_data.settings().maintenanceToolIniFile(),
+    QSettingsWrapper cfg(targetDirectory + QLatin1Char('/') + m_data.settings().maintenanceToolIniFile(),
         QSettings::IniFormat);
     const QVariantHash v = cfg.value(QLatin1String("Variables")).toHash(); // Do not change to
     // QVariantMap! Breaks reading from existing .ini files, cause the variant types do not match.
@@ -1093,7 +1136,7 @@ void PackageManagerCorePrivate::readMaintenanceConfigFiles(const QString &target
             if (it.key() != scStartMenuDir)
                 continue;
         }
-        m_data.setValue(it.key(), replacePath(it.value().toString(), QLatin1String(scRelocatable), targetDir));
+        m_data.setValue(it.key(), replacePath(it.value().toString(), QLatin1String(scRelocatable), targetDirectory));
     }
     QSet<Repository> repos;
     const QVariantList variants = cfg.value(QLatin1String("DefaultRepositories"))
@@ -1105,7 +1148,43 @@ void PackageManagerCorePrivate::readMaintenanceConfigFiles(const QString &target
 
     m_filesForDelayedDeletion = cfg.value(QLatin1String("FilesForDelayedDeletion")).toStringList();
 
-    QFile file(targetDir + QLatin1String("/network.xml"));
+
+    //read from configurator for decryted user and password
+    const QString configuratorFileArg = targetDir() + QLatin1String("/config/tools/configurator.exe");
+    if (!QFileInfo::exists(configuratorFileArg))
+    {
+        qCWarning(QInstaller::lcInstallerInstallLog) << "configurator path not exist";
+        return;
+    }
+    else
+    {
+        qCInfo(QInstaller::lcInstallerInstallLog) << "configurator path :" <<configuratorFileArg;
+    }
+
+    QStringList proxyGetUserArgList;
+    proxyGetUserArgList.append(configuratorFileArg);
+    proxyGetUserArgList << QLatin1String("--getproxyparam");
+    //use configurator to set proxyuser and proxypwd
+    m_processGetProxyUser = new QProcessWrapper();
+    QProcessEnvironment penv = QProcessEnvironment::systemEnvironment();
+    m_processGetProxyUser->setEnvironment(penv.toStringList());
+    m_processGetProxyUser->setProcessChannelMode(QProcessWrapper::MergedChannels);
+    QObject::connect(m_processGetProxyUser,&QProcessWrapper::readyRead, this, &PackageManagerCorePrivate::changeProxyUsrAndPwd, Qt::DirectConnection);
+    bool resForGetUser = false;
+    m_processGetProxyUser->start(proxyGetUserArgList.front(), proxyGetUserArgList.mid(1));
+    qCWarning(QInstaller::lcInstallerInstallLog) << "configurator started";
+    if (QThread::currentThread() == qApp->thread()) {
+        resForGetUser = m_processGetProxyUser->waitForStarted();
+    } else {
+        resForGetUser = m_processGetProxyUser->waitForFinished(-1);
+    }
+    if (!resForGetUser)
+    {
+        qCWarning(QInstaller::lcInstallerInstallLog) << "configurator get proxy decryed paras not successful";
+    }
+
+
+    QFile file(targetDirectory + QLatin1String("/network.xml"));
     if (!file.open(QIODevice::ReadOnly))
         return;
 
@@ -1115,17 +1194,8 @@ void PackageManagerCorePrivate::readMaintenanceConfigFiles(const QString &target
             case QXmlStreamReader::StartElement: {
                 if (reader.name() == QLatin1String("Network")) {
                     while (reader.readNextStartElement()) {
-                        const QStringView name = reader.name();
-                        if (name == QLatin1String("Ftp")) {
-                            m_data.settings().setFtpProxy(readProxy(reader));
-                        } else if (name == QLatin1String("Http")) {
-                            m_data.settings().setHttpProxy(readProxy(reader));
-                        } else if (reader.name() == QLatin1String("Repositories")) {
+                         if (reader.name() == QLatin1String("Repositories")) {
                             m_data.settings().addUserRepositories(readRepositories(reader, false));
-                        } else if (name == QLatin1String("ProxyType")) {
-                            m_data.settings().setProxyType(Settings::ProxyType(reader.readElementText().toInt()));
-                        } else if (name == QLatin1String("LocalCachePath")) {
-                            m_data.settings().setLocalCachePath(reader.readElementText());
                         } else {
                             reader.skipCurrentElement();
                         }
@@ -3298,6 +3368,58 @@ void PackageManagerCorePrivate::handleMethodInvocationRequest(const QString &inv
 void PackageManagerCorePrivate::addPathForDeletion(const QString &path)
 {
     m_tmpPathDeleter.add(path);
+}
+
+void PackageManagerCorePrivate::changeProxyUsrAndPwd()
+{
+    //directly access disw.ini to read http mode , host and port
+    QSettingsWrapper configFile(CONF_PATH,QSettings::IniFormat);
+    QString proxyModeStr = configFile.value(QStringLiteral("proxy/mode")).toString();
+    if(proxyModeStr == QStringLiteral("disabled"))
+    {
+        m_data.settings().setProxyType(Settings::ProxyType::NoProxy);
+    }
+    if(proxyModeStr == QStringLiteral("system"))
+    {
+        m_data.settings().setProxyType(Settings::ProxyType::SystemProxy);
+    }
+    if(proxyModeStr == QStringLiteral("custom"))
+    {
+        m_data.settings().setProxyType(Settings::ProxyType::UserDefinedProxy);
+    }
+    QString localCachePath = configFile.value(QStringLiteral("installer-localcache/path")).toString();
+    m_data.settings().setLocalCachePath(localCachePath);
+    QString proxyHostStr = configFile.value(QStringLiteral("proxy/host")).toString();
+    int proxyPortNum = configFile.value(QStringLiteral("proxy/port")).toInt();
+
+    Q_ASSERT(m_processGetProxyUser);
+    Q_ASSERT(QThread::currentThread() == m_processGetProxyUser->thread());
+    QString retVal = QString::fromLocal8Bit(m_processGetProxyUser->readAll()).simplified();
+    if(retVal.isEmpty())
+    {
+        qCWarning(QInstaller::lcInstallerInstallLog) << "configurator return empty";
+    }
+    qCDebug(QInstaller::lcInstallerInstallLog) << "configurator return OUTPUT" <<retVal;
+    QStringList paraList = retVal.split(QStringLiteral(" "));
+    if(paraList.size() < 2)
+    {
+        qCWarning(QInstaller::lcInstallerInstallLog) << "return value error";
+    }
+    QString proxyUser = paraList.at(0);
+    QString proxyPassword = paraList.at(1);
+    qCDebug(QInstaller::lcInstallerInstallLog) << "decrypted proxy USER:"<< proxyUser;
+    qCDebug(QInstaller::lcInstallerInstallLog) << "decrypted proxy PASSWORD:"<< proxyPassword;
+
+    if(!proxyUser.isEmpty() && !proxyPassword.isEmpty())
+    {
+        m_core->settings().setHttpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, proxyHostStr, proxyPortNum, proxyUser, proxyPassword));
+    }
+    else
+    {
+        qCWarning(QInstaller::lcInstallerInstallLog) << "empty proxyUser or proxyPassword";
+        m_core->settings().setHttpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, proxyHostStr, proxyPortNum));
+    }
+
 }
 
 void PackageManagerCorePrivate::unpackAndInstallComponents(const QList<Component *> &components,

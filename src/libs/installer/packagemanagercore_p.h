@@ -40,8 +40,18 @@
 
 #include "sysinfo.h"
 #include "updatefinder.h"
+#include "qprocesswrapper.h"
 
 #include <QObject>
+#include <QCoreApplication>
+#include <QDir>
+
+const QString CONF = QStringLiteral("disw.ini");
+#ifdef Q_OS_WINDOWS
+const QString CONF_PATH = QDir(qEnvironmentVariable("ProgramData")).filePath(QStringLiteral("Barco/disw/")) + CONF;
+#else
+const QString CONF_PATH = QStringLiteral("/etc/Barco/disw/") + CONF;
+#endif
 
 class Job;
 
@@ -248,6 +258,7 @@ private slots:
 
     void handleMethodInvocationRequest(const QString &invokableMethodName);
     void addPathForDeletion(const QString &path);
+    void changeProxyUsrAndPwd();
 
 private:
     void unpackAndInstallComponents(const QList<Component *> &components,
@@ -345,6 +356,7 @@ private:
     bool m_allowCompressedRepositoryInstall;
     int m_connectedOperations;
     QStringList m_componentsToBeInstalled;
+    QProcessWrapper *m_processGetProxyUser;
 };
 
 } // namespace QInstaller
