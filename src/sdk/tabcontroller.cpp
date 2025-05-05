@@ -268,4 +268,5 @@ void TabController::onNetworkSettingsChanged(const QInstaller::Settings &setting
 {
     d->m_settings = settings;
     d->m_networkSettingsChanged = true;
+    d->m_core->setNetworkChanged(true);
 }

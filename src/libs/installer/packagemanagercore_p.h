@@ -220,6 +220,7 @@ public:
     bool m_checkAvailableSpace;
     bool m_completeUninstall;
     bool m_needToWriteMaintenanceTool;
+    bool m_networkSettingChanged;
     PackageManagerCoreData m_data;
     QString m_installerBaseBinaryUnreplaced;
     QString m_offlineBaseBinaryUnreplaced;

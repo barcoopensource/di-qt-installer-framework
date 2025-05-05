@@ -220,6 +220,7 @@ PackageManagerCorePrivate::PackageManagerCorePrivate(PackageManagerCore *core, q
     , m_checkAvailableSpace(true)
     , m_completeUninstall(false)
     , m_needToWriteMaintenanceTool(false)
+    , m_networkSettingChanged(false)
     , m_dependsOnLocalInstallerBinary(false)
     , m_autoAcceptLicenses(false)
     , m_disableWriteMaintenanceTool(false)

@@ -516,7 +516,10 @@ void PackageManagerCore::writeMaintenanceTool()
 */
 void PackageManagerCore::writeMaintenanceConfigFiles()
 {
-    d->writeMaintenanceConfigFiles();
+    if(networkChanged())
+    {
+        d->writeMaintenanceConfigFiles();
+    }
 }
 
 /*!
@@ -936,6 +939,16 @@ bool PackageManagerCore::needsHardRestart() const
 void PackageManagerCore::setNeedsHardRestart(bool needsHardRestart)
 {
     d->m_needsHardRestart = needsHardRestart;
+}
+
+bool PackageManagerCore::networkChanged() const
+{
+    return d->m_networkSettingChanged;
+}
+
+void PackageManagerCore::setNetworkChanged(bool networkChanged)
+{
+    d->m_networkSettingChanged = networkChanged;
 }
 
 /*!

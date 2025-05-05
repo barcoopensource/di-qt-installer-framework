@@ -394,6 +394,10 @@ public:
 
     bool needsHardRestart() const;
     void setNeedsHardRestart(bool needsHardRestart = true);
+
+    bool networkChanged() const;
+    void setNetworkChanged(bool networkChanged = true);
+
     bool finishedWithSuccess() const;
 
     QStringList filesForDelayedDeletion() const;

@@ -269,9 +269,11 @@ public:
         if (m_parser.isSet(CommandLineOptions::scNoProxyLong)) {
             m_core->settings().setProxyType(QInstaller::Settings::NoProxy);
             KDUpdater::FileDownloaderFactory::instance().setProxyFactory(m_core->proxyFactory());
+            m_core->setNetworkChanged(true);
         } else if (QNetworkProxyFactory::usesSystemConfiguration()) {
             m_core->settings().setProxyType(QInstaller::Settings::SystemProxy);
             KDUpdater::FileDownloaderFactory::instance().setProxyFactory(m_core->proxyFactory());
+            m_core->setNetworkChanged(true);
         } else if(m_parser.isSet(CommandLineOptions::scManualProxyLong)) {
             m_core->settings().setProxyType(QInstaller::Settings::UserDefinedProxy);
             // get proxy type, name, port
@@ -336,6 +338,7 @@ public:
                 errorMessage = QObject::tr("Manual proxy name and portId need to be specifed.");
                 return false;
             }
+            m_core->setNetworkChanged(true);  //mark m_networkSettingChanged flag as true for writeMaintenanceConfigFiles to work
 
         }
 
