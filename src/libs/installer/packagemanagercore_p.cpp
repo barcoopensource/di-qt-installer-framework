@@ -1149,6 +1149,24 @@ void PackageManagerCorePrivate::readMaintenanceConfigFiles(const QString &target
 
     m_filesForDelayedDeletion = cfg.value(QLatin1String("FilesForDelayedDeletion")).toStringList();
 
+    //directly access disw.ini to read proxy mode , local cache path
+    QSettingsWrapper configFile(CONF_PATH,QSettings::IniFormat);
+    QString proxyModeStr = configFile.value(QStringLiteral("proxy/mode")).toString();
+    if(proxyModeStr == QStringLiteral("disabled"))
+    {
+        m_data.settings().setProxyType(Settings::ProxyType::NoProxy);
+    }
+    if(proxyModeStr == QStringLiteral("system"))
+    {
+        m_data.settings().setProxyType(Settings::ProxyType::SystemProxy);
+    }
+    if(proxyModeStr == QStringLiteral("custom"))
+    {
+        m_data.settings().setProxyType(Settings::ProxyType::UserDefinedProxy);
+    }
+    QString localCachePath = configFile.value(QStringLiteral("installer-localcache/path")).toString();
+    m_data.settings().setLocalCachePath(localCachePath);
+
 
     //read from configurator for decryted user and password
     const QString configuratorFileArg = targetDir() + QLatin1String("/config/tools/configurator.exe");
@@ -3373,43 +3391,44 @@ void PackageManagerCorePrivate::addPathForDeletion(const QString &path)
 
 void PackageManagerCorePrivate::changeProxyUsrAndPwd()
 {
-    //directly access disw.ini to read http mode , host and port
-    QSettingsWrapper configFile(CONF_PATH,QSettings::IniFormat);
-    QString proxyModeStr = configFile.value(QStringLiteral("proxy/mode")).toString();
-    if(proxyModeStr == QStringLiteral("disabled"))
-    {
-        m_data.settings().setProxyType(Settings::ProxyType::NoProxy);
-    }
-    if(proxyModeStr == QStringLiteral("system"))
-    {
-        m_data.settings().setProxyType(Settings::ProxyType::SystemProxy);
-    }
-    if(proxyModeStr == QStringLiteral("custom"))
-    {
-        m_data.settings().setProxyType(Settings::ProxyType::UserDefinedProxy);
-    }
-    QString localCachePath = configFile.value(QStringLiteral("installer-localcache/path")).toString();
-    m_data.settings().setLocalCachePath(localCachePath);
-    QString proxyHostStr = configFile.value(QStringLiteral("proxy/host")).toString();
-    int proxyPortNum = configFile.value(QStringLiteral("proxy/port")).toInt();
-
     Q_ASSERT(m_processGetProxyUser);
     Q_ASSERT(QThread::currentThread() == m_processGetProxyUser->thread());
     QString retVal = QString::fromLocal8Bit(m_processGetProxyUser->readAll()).simplified();
     if(retVal.isEmpty())
     {
         qCWarning(QInstaller::lcInstallerInstallLog) << "configurator return empty";
+        return;
+    }
+    if(!retVal.contains(QStringLiteral(";")))
+    {
+        return;
     }
     qCDebug(QInstaller::lcInstallerInstallLog) << "configurator return OUTPUT" <<retVal;
-    QStringList paraList = retVal.split(QStringLiteral(" "));
+    QStringList paraList = retVal.split(QStringLiteral(";"));
     if(paraList.size() < 2)
     {
         qCWarning(QInstaller::lcInstallerInstallLog) << "return value error";
+        return;
     }
-    QString proxyUser = paraList.at(0);
-    QString proxyPassword = paraList.at(1);
+    QString proxyUser = paraList.at(0).trimmed();
+    QString proxyPasswordCandidate = paraList.at(1).trimmed();
+    QString proxyPassword;
+    if (proxyPasswordCandidate.contains(QStringLiteral(" ")))
+    {
+        proxyPassword = proxyPasswordCandidate.split(QStringLiteral(" ")).at(0);
+    }
+    else
+    {
+        proxyPassword = proxyPasswordCandidate;
+    }
+
     qCDebug(QInstaller::lcInstallerInstallLog) << "decrypted proxy USER:"<< proxyUser;
     qCDebug(QInstaller::lcInstallerInstallLog) << "decrypted proxy PASSWORD:"<< proxyPassword;
+
+    //directly access disw.ini to read http host and port
+    QSettingsWrapper configFile(CONF_PATH,QSettings::IniFormat);
+    QString proxyHostStr = configFile.value(QStringLiteral("proxy/host")).toString();
+    int proxyPortNum = configFile.value(QStringLiteral("proxy/port")).toInt();
 
     if(!proxyUser.isEmpty() && !proxyPassword.isEmpty())
     {
