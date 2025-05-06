@@ -297,7 +297,6 @@ public:
 private Q_SLOTS:
     void setNetworkGroupboxVisible(bool value);
     void setHttpAuthenEnabled(bool value);
-    void setFtpAuthenEnabled(bool value);
 
 private:
 
@@ -312,7 +311,6 @@ private:
     QRadioButton *m_manualProxy;
 
     QGroupBox *m_httpBox;
-    QGroupBox *m_ftpBox;
 
     QLabel *m_labelHttpHostName;
     QLabel *m_labelHttpPort;
@@ -323,16 +321,6 @@ private:
     QLineEdit *m_lineHttpPort;
     QLineEdit *m_lineHttpUserName;
     QLineEdit *m_lineHttpPassword;
-
-    QLabel *m_labelFtpHostName;
-    QLabel *m_labelFtpPort;
-    QRadioButton *m_ifFtpAuthenticate;
-    QLabel *m_labelFtpUserName;
-    QLabel *m_labelFtpPassword;
-    QLineEdit *m_lineFtpHostName;
-    QLineEdit *m_lineFtpPort;
-    QLineEdit *m_lineFtpUserName;
-    QLineEdit *m_lineFtpPassword;
 
 };
 

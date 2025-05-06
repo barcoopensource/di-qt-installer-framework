@@ -3267,7 +3267,6 @@ ProxySettingPage::ProxySettingPage(PackageManagerCore *core)
     , m_systemProxy(nullptr)
     , m_manualProxy(nullptr)
     , m_httpBox(nullptr)
-    , m_ftpBox(nullptr)
     , m_labelHttpHostName(nullptr)
     , m_labelHttpPort(nullptr)
     , m_ifHttpAuthenticate(nullptr)
@@ -3277,15 +3276,6 @@ ProxySettingPage::ProxySettingPage(PackageManagerCore *core)
     , m_lineHttpPort(nullptr)
     , m_lineHttpUserName(nullptr)
     , m_lineHttpPassword(nullptr)
-    , m_labelFtpHostName(nullptr)
-    , m_labelFtpPort(nullptr)
-    , m_ifFtpAuthenticate(nullptr)
-    , m_labelFtpUserName(nullptr)
-    , m_labelFtpPassword(nullptr)
-    , m_lineFtpHostName(nullptr)
-    , m_lineFtpPort(nullptr)
-    , m_lineFtpUserName(nullptr)
-    , m_lineFtpPassword(nullptr)
 {
     setPixmap(QWizard::WatermarkPixmap, QPixmap());
     setObjectName(QLatin1String("ProxySettingPage"));
@@ -3316,7 +3306,6 @@ ProxySettingPage::ProxySettingPage(PackageManagerCore *core)
 
     QHBoxLayout *groupBoxLayout = new QHBoxLayout;
     QGridLayout *httpBoxLayout = new QGridLayout;
-    QGridLayout *ftpBoxLayout = new QGridLayout;
 
     // http para groupbox
     m_labelHttpHostName = new QLabel(this);
@@ -3367,89 +3356,29 @@ ProxySettingPage::ProxySettingPage(PackageManagerCore *core)
     m_httpBox->setTitle(QLatin1String("Http"));
     m_httpBox->setLayout(httpBoxLayout);
 
-    // ftp para groupbox
-    m_labelFtpHostName = new QLabel(this);
-    m_labelFtpHostName->setWordWrap(true);
-    m_labelFtpHostName->setObjectName(QLatin1String("FtpHostname"));
-    m_labelFtpHostName->setText(tr("Hostname"));
-
-    m_labelFtpPort = new QLabel(this);
-    m_labelFtpPort->setWordWrap(true);
-    m_labelFtpPort->setObjectName(QLatin1String("FtpPort"));
-    m_labelFtpPort->setText(tr("Port"));
-
-    m_lineFtpHostName = new QLineEdit(this);
-    m_lineFtpHostName->setObjectName(QLatin1String("FtpHostNameLineEdit"));
-    m_lineFtpPort = new QLineEdit(this);
-    m_lineFtpPort->setObjectName(QLatin1String("FtpPortLineEdit"));
-
-    ftpBoxLayout->addWidget(m_labelFtpHostName,0,0,1,1);
-    ftpBoxLayout->addWidget(m_lineFtpHostName,0,1,1,3);
-    ftpBoxLayout->addWidget(m_labelFtpPort,1,0,1,1);
-    ftpBoxLayout->addWidget(m_lineFtpPort,1,1,1,3);
-
-    m_ifFtpAuthenticate = new QRadioButton(tr("&Use authentication"), this);
-    m_ifFtpAuthenticate->setObjectName(QLatin1String("ifHttpAuthenticationRadioButton"));
-
-    m_labelFtpUserName = new QLabel(this);
-    m_labelFtpUserName->setWordWrap(true);
-    m_labelFtpUserName->setObjectName(QLatin1String("FtpUsername"));
-    m_labelFtpUserName->setText(tr("Username"));
-
-    m_labelFtpPassword = new QLabel(this);
-    m_labelFtpPassword->setWordWrap(true);
-    m_labelFtpPassword->setObjectName(QLatin1String("FtpPassword"));
-    m_labelFtpPassword->setText(tr("Password"));
-
-    m_lineFtpUserName = new QLineEdit(this);
-    m_lineFtpUserName->setObjectName(QLatin1String("FtpUserNameLineEdit"));
-    m_lineFtpPassword = new QLineEdit(this);
-    m_lineFtpPassword->setObjectName(QLatin1String("FtpPasswordLineEdit"));
-
-    ftpBoxLayout->addWidget(m_ifFtpAuthenticate,2,1,1,3);
-    ftpBoxLayout->addWidget(m_labelFtpUserName,3,0,1,1);
-    ftpBoxLayout->addWidget(m_lineFtpUserName,3,1,1,3);
-    ftpBoxLayout->addWidget(m_labelFtpPassword,4,0,1,1);
-    ftpBoxLayout->addWidget(m_lineFtpPassword,4,1,1,3);
-
-    m_ftpBox = new QGroupBox(this);
-    m_ftpBox->setTitle(QLatin1String("Ftp"));
-    m_ftpBox->setLayout(ftpBoxLayout);
-
     //groupbox layout
     groupBoxLayout->addWidget(m_httpBox);
-    groupBoxLayout->addWidget(m_ftpBox);
 
     layout->addLayout(groupBoxLayout);
     layout->addWidget(m_systemProxy);
 
     setNetworkGroupboxVisible(false);
     setHttpAuthenEnabled(false);
-    setFtpAuthenEnabled(false);
     connect(m_manualProxy, &QAbstractButton::toggled,
             this, &ProxySettingPage::setNetworkGroupboxVisible);
     connect(m_ifHttpAuthenticate, &QAbstractButton::toggled,
             this, &ProxySettingPage::setHttpAuthenEnabled);
-    connect(m_ifFtpAuthenticate, &QAbstractButton::toggled,
-            this, &ProxySettingPage::setFtpAuthenEnabled);
 }
 
 void ProxySettingPage::setNetworkGroupboxVisible(bool value)
 {
     m_httpBox->setVisible(value);
-    m_ftpBox->setVisible(value);
 }
 
 void ProxySettingPage::setHttpAuthenEnabled(bool value)
 {
     m_lineHttpUserName->setEnabled(value);
     m_lineHttpPassword->setEnabled(value);
-}
-
-void ProxySettingPage::setFtpAuthenEnabled(bool value)
-{
-    m_lineFtpUserName->setEnabled(value);
-    m_lineFtpPassword->setEnabled(value);
 }
 
 void ProxySettingPage::entering()
@@ -3470,12 +3399,6 @@ void ProxySettingPage::entering()
         m_noProxy->setChecked(true);
         Q_ASSERT_X(false, Q_FUNC_INFO, "Unknown proxy type given!");
     }
-    const QNetworkProxy &ftpProxy = settings.ftpProxy();
-    m_lineFtpHostName->setText(ftpProxy.hostName());
-    m_lineFtpPort->setText(QString::number(ftpProxy.port()));
-    m_ifFtpAuthenticate->setChecked((!ftpProxy.user().isEmpty()) && (!ftpProxy.password().isEmpty()));
-    m_lineFtpUserName->setText(ftpProxy.user());
-    m_lineFtpPassword->setText(ftpProxy.password());
 
     const QNetworkProxy &httpProxy = settings.httpProxy();
     m_lineHttpHostName->setText(httpProxy.hostName());
@@ -3499,21 +3422,6 @@ void ProxySettingPage::leaving()
         settings.setProxyType(Settings::UserDefinedProxy);
 
     if (settings.proxyType() == Settings::UserDefinedProxy) {
-        // update ftp proxy settings
-        if((!m_lineFtpHostName->text().isEmpty()) && (!m_lineFtpPort->text().isEmpty()))
-        {
-            if(m_ifFtpAuthenticate->isChecked())
-            {
-                settings.setFtpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, m_lineFtpHostName->text(),
-                                                   m_lineFtpPort->text().toInt(),m_lineFtpUserName->text(),m_lineFtpPassword->text()));
-            }
-            else
-            {
-                settings.setFtpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, m_lineFtpHostName->text(),
-                                              m_lineFtpPort->text().toInt()));
-            }
-        }
-        // update http proxy settings
         if((!m_lineHttpHostName->text().isEmpty()) && (!m_lineHttpPort->text().isEmpty()))
         {
             if(m_ifHttpAuthenticate->isChecked())
