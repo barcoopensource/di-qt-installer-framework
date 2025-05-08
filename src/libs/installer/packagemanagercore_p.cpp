@@ -3394,37 +3394,36 @@ void PackageManagerCorePrivate::changeProxyUsrAndPwd()
     Q_ASSERT(m_processGetProxyUser);
     Q_ASSERT(QThread::currentThread() == m_processGetProxyUser->thread());
     QString retVal = QString::fromLocal8Bit(m_processGetProxyUser->readAll()).simplified();
+    qCDebug(QInstaller::lcInstallerInstallLog) << "configurator return OUTPUT" <<retVal;
     if(retVal.isEmpty())
     {
         qCWarning(QInstaller::lcInstallerInstallLog) << "configurator return empty";
         return;
     }
-    if(!retVal.contains(QStringLiteral(";")))
+    if(!retVal.contains(QStringLiteral("successful")) || !retVal.contains(QStringLiteral(";")))
     {
         return;
     }
-    qCDebug(QInstaller::lcInstallerInstallLog) << "configurator return OUTPUT" <<retVal;
-    QStringList paraList = retVal.split(QStringLiteral(";"));
-    if(paraList.size() < 2)
+    QString proxyUser = QString();
+    QString proxyPassword = QString();
+    if(retVal.contains(QStringLiteral(";")))
     {
-        qCWarning(QInstaller::lcInstallerInstallLog) << "return value error";
-        return;
-    }
-    QString proxyUser = paraList.at(0).trimmed();
-    QString proxyPasswordCandidate = paraList.at(1).trimmed();
-    QString proxyPassword;
-    if (proxyPasswordCandidate.contains(QStringLiteral(" ")))
-    {
-        proxyPassword = proxyPasswordCandidate.split(QStringLiteral(" ")).at(0);
-    }
-    else
-    {
-        proxyPassword = proxyPasswordCandidate;
-    }
+        QStringList paraList = retVal.split(QStringLiteral(";"));
+        if(paraList.size() < 2)
+        {
+            qCWarning(QInstaller::lcInstallerInstallLog) << "return value error";
+            return;
+        }
+        //remove extra space added in output
+        proxyUser = paraList.at(0);
+        proxyUser = proxyUser.remove(proxyUser.size()-1,1);
+        proxyPassword = paraList.at(1);
+        proxyPassword = proxyPassword.remove(proxyPassword.size()-1,1);
+        proxyPassword = proxyPassword.remove(0,1);
 
-    qCDebug(QInstaller::lcInstallerInstallLog) << "decrypted proxy USER:"<< proxyUser;
-    qCDebug(QInstaller::lcInstallerInstallLog) << "decrypted proxy PASSWORD:"<< proxyPassword;
-
+        qCDebug(QInstaller::lcInstallerInstallLog) << "decrypted proxy USER:"<< proxyUser;
+        qCDebug(QInstaller::lcInstallerInstallLog) << "decrypted proxy PASSWORD:"<< proxyPassword;
+    }
     //directly access disw.ini to read http host and port
     QSettingsWrapper configFile(CONF_PATH,QSettings::IniFormat);
     QString proxyHostStr = configFile.value(QStringLiteral("proxy/host")).toString();
@@ -3436,8 +3435,13 @@ void PackageManagerCorePrivate::changeProxyUsrAndPwd()
     }
     else
     {
-        qCWarning(QInstaller::lcInstallerInstallLog) << "empty proxyUser or proxyPassword";
-        m_core->settings().setHttpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, proxyHostStr, proxyPortNum));
+        QNetworkProxy existingProxy = m_core->settings().httpProxy();
+        //if existingProxy is not set,then this messege is not prefixed with proxy paras,otherwise proxy is already changed,nothing needs to be done
+        if(existingProxy.hostName().isEmpty())
+        {
+            qCWarning(QInstaller::lcInstallerInstallLog) << "empty proxyUser or proxyPassword";
+            m_core->settings().setHttpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, proxyHostStr, proxyPortNum));
+        }
     }
 
 }
