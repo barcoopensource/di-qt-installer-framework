@@ -178,6 +178,7 @@ static const QLatin1String scLogo("Logo");
 static const QLatin1String scBackground("Background");
 static const QLatin1String scPageListPixmap("PageListPixmap");
 static const QLatin1String scAliasDefinitionsFile("AliasDefinitionsFile");
+static const QLatin1String scMigrationFlag("Migration");
 const char scRelocatable[] = "@RELOCATABLE_PATH@";
 
 static const QStringList scMetaElements = {
@@ -311,6 +312,9 @@ static const QLatin1String scMaxConcurrentOperationsShort("mco");
 static const QLatin1String scMaxConcurrentOperationsLong("max-concurrent-operations");
 static const QLatin1String scCleanupUpdate("cleanup-update");
 static const QLatin1String scCleanupUpdateOnly("cleanup-update-only");
+
+//Migratiton option
+static const QLatin1String scMigration("migration");
 
 // Deprecated options, provided only for backward compatibility
 static const QLatin1String scDeprecatedUpdater("updater");

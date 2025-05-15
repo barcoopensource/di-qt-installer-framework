@@ -339,6 +339,11 @@ public:
 
         }
 
+        //migration mode
+        if (m_parser.isSet(CommandLineOptions::scMigration)) {
+            m_core->setValue(QInstaller::scMigrationFlag, QLatin1String("true"));
+        }
+
         if (m_parser.isSet(CommandLineOptions::scLocalCachePathLong)) {
             const QString cachePath = m_parser.value(CommandLineOptions::scLocalCachePathLong);
             if (cachePath.isEmpty()) {

@@ -285,6 +285,11 @@ CommandLineParser::CommandLineParser()
     cleanupUpdateOnly.setFlags(QCommandLineOption::HiddenFromHelp);
     addOption(cleanupUpdateOnly);
 
+    //Migratiton option
+    addOption(QCommandLineOption(QStringList()
+        << CommandLineOptions::scMigration,
+        QLatin1String("Use migration option.")));
+
     // Deprecated options
     QCommandLineOption deprecatedUpdater(CommandLineOptions::scDeprecatedUpdater);
     deprecatedUpdater.setFlags(QCommandLineOption::HiddenFromHelp);
