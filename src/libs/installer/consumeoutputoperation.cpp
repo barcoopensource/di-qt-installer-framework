@@ -89,6 +89,7 @@ bool ConsumeOutputOperation::performOperation()
     const QStringList processArguments = arguments().mid(2);
     // in some cases it is not runable, because another process is blocking it(filewatcher ...)
     int waitCount = 0;
+    int _exitCode = 0;
     while (executableOutput.isEmpty() && waitCount < 3) {
         QProcess process;
         process.setProcessChannelMode(QProcess::MergedChannels);
@@ -96,17 +97,23 @@ bool ConsumeOutputOperation::performOperation()
         if (process.waitForFinished(10000)) {
             if (process.exitStatus() == QProcess::CrashExit) {
                 qCWarning(QInstaller::lcInstallerInstallLog) << executable
-                    << processArguments << "crashed with exit code"
-                    << process.exitCode() << "standard output: "
-                    << process.readAllStandardOutput() << "error output: "
-                    << process.readAllStandardError();
+                                                             << processArguments << "crashed with exit code"
+                                                             << process.exitCode() << "standard output: "
+                                                             << process.readAllStandardOutput() << "error output: "
+                                                             << process.readAllStandardError();
                 setError(UserDefinedError);
                 setErrorString(tr("Failed to run command: \"%1\": %2").arg(
                     QDir::toNativeSeparators(executable), process.errorString()));
+
+                _exitCode = process.exitCode();
+                core->setValue(installerKeyName + QStringLiteral("ExitCode"), (const QString)QString::number (_exitCode));
                 return false;
             }
+
+            _exitCode = process.exitCode();
             executableOutput.append(process.readAllStandardOutput());
         }
+
         if (executableOutput.isEmpty()) {
             ++waitCount;
             static const int waitTimeInMilliSeconds = 500;
@@ -114,16 +121,17 @@ bool ConsumeOutputOperation::performOperation()
         }
         if (process.state() > QProcess::NotRunning ) {
             qCWarning(QInstaller::lcInstallerInstallLog) << executable
-                << "process is still running, need to kill it.";
+                                                         << "process is still running, need to kill it.";
             process.kill();
         }
 
     }
     if (executableOutput.isEmpty()) {
         qCWarning(QInstaller::lcInstallerInstallLog) << "Cannot get any query output from executable"
-            << executable;
+                                                     << executable;
     }
     core->setValue(installerKeyName, QString::fromLocal8Bit(executableOutput.trimmed()));
+    core->setValue(installerKeyName + QStringLiteral("ExitCode"), (const QString)QString::number (_exitCode));
     return true;
 }
 
