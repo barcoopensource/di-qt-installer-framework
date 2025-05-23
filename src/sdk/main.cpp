@@ -321,7 +321,7 @@ int main(int argc, char *argv[])
             QNetworkProxyFactory::setUseSystemConfiguration(false);
         }
 
-        if ((parser.isSet(CommandLineOptions::scNoProxyLong)) || (parser.isSet(CommandLineOptions::scManualProxyLong)))
+        if ((parser.isSet(CommandLineOptions::scNoProxyLong)) || (parser.isSet(CommandLineOptions::scCustomProxyLong)))
             QNetworkProxyFactory::setUseSystemConfiguration(false);
 
         const SelfRestarter restarter(argc, argv);

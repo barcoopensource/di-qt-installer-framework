@@ -122,7 +122,7 @@ CommandLineParser::CommandLineParser()
 
     // Starting mode options
     addOption(QCommandLineOption(QStringList()
-        << CommandLineOptions::scManualProxyShort << CommandLineOptions::scManualProxyLong,
+        << CommandLineOptions::scCustomProxyShort << CommandLineOptions::scCustomProxyLong,
         QLatin1String("Use manual proxy.")));
 
     // Custom Proxy options
