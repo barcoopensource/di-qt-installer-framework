@@ -269,7 +269,7 @@ public:
         if (m_parser.isSet(CommandLineOptions::scNoProxyLong)) {
             m_core->settings().setProxyType(QInstaller::Settings::NoProxy);
             KDUpdater::FileDownloaderFactory::instance().setProxyFactory(m_core->proxyFactory());
-        } else if(m_parser.isSet(CommandLineOptions::scCustomProxyLong)) {
+        } else if(m_parser.isSet(CommandLineOptions::scManualProxyLong)) {
             m_core->settings().setProxyType(QInstaller::Settings::UserDefinedProxy);
             // get proxy type, name, port
             if ((m_parser.isSet(CommandLineOptions::scHttpProxyHostNameLong)) && (m_parser.isSet(CommandLineOptions::scPortIdLong))) {

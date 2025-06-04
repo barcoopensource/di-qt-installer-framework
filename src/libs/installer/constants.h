@@ -235,8 +235,8 @@ static const QLatin1String scSystemProxyShort("sp");
 static const QLatin1String scSystemProxyLong("system-proxy");
 static const QLatin1String scNoProxyShort("np");
 static const QLatin1String scNoProxyLong("no-proxy");
-static const QLatin1String scCustomProxyShort("cpr");
-static const QLatin1String scCustomProxyLong("custom-proxy");
+static const QLatin1String scManualProxyShort("mp");
+static const QLatin1String scManualProxyLong("manual-proxy");
 
 // Custom Proxy options
 static const QLatin1String scHttpProxyHostNameShort("hph");

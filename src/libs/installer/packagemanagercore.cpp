@@ -3862,7 +3862,7 @@ QString PackageManagerCore::getProxyMode() const
             return QStringLiteral("system");
             break;
         case Settings::UserDefinedProxy:
-            return QStringLiteral("custom");
+            return QStringLiteral("manual");
             break;
     }
 }
@@ -3877,7 +3877,7 @@ void PackageManagerCore::setProxyMode(const QString &proxyType)
     {
         d->m_data.settings().setProxyType(QInstaller::Settings::SystemProxy);
     }
-    else if(proxyType == QStringLiteral("custom"))
+    else if(proxyType == QStringLiteral("manual"))
     {
         d->m_data.settings().setProxyType(QInstaller::Settings::UserDefinedProxy);
     }

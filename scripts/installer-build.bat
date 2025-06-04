@@ -3,12 +3,6 @@ SetLocal EnableDelayedExpansion
 REM set msvc env
 CALL "C:\Program Files\Microsoft Visual Studio\2022\Enterprise\VC\Auxiliary\Build\vcvarsall.bat" x64
 
-echo INCLUDE=%INCLUDE%
-echo LIB=%LIB%
-echo PATH=%PATH%
-
-cl
-
 REM set env path
 set path=%path%;%~dp0..\package\qt-static-6.6.0\bin
 set path=%path%;%~dp0..\package\jom
