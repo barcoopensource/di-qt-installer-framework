@@ -255,7 +255,7 @@ struct KDUpdater::FileDownloader::Private
 KDUpdater::FileDownloader::FileDownloader(const QString &scheme, QObject *parent)
     : QObject(parent)
     , d(new Private)
-    ,m_slbToken(QByteArray())
+    , m_slbToken(QByteArray())
 {
     d->scheme = scheme;
 }
