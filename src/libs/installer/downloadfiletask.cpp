@@ -73,7 +73,8 @@ AuthenticationRequiredException::AuthenticationRequiredException(Type type, cons
 }
 
 Downloader::Downloader()
-    : m_finished(0)
+    : m_finished(0),
+    m_slbToken(QByteArray())
 {
     connect(&m_timer, &QTimer::timeout, this, &Downloader::onTimeout);
     connect(&m_nam, &QNetworkAccessManager::finished, this, &Downloader::onFinished);
