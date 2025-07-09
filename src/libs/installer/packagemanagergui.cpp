@@ -1524,6 +1524,7 @@ IntroductionPage::IntroductionPage(PackageManagerCore *core)
     , m_packageManager(nullptr)
     , m_updateComponents(nullptr)
     , m_removeAllComponents(nullptr)
+    , m_configureSettings(nullptr)
 {
     setObjectName(QLatin1String("IntroductionPage"));
 
@@ -1555,6 +1556,11 @@ IntroductionPage::IntroductionPage(PackageManagerCore *core)
     m_updateComponents->setObjectName(QLatin1String("UpdaterRadioButton"));
     boxLayout->addWidget(m_updateComponents);
     connect(m_updateComponents, &QAbstractButton::toggled, this, &IntroductionPage::setUpdater);
+
+    m_configureSettings = new QRadioButton(tr("&Configure Settings"), this);
+    m_configureSettings->setObjectName(QLatin1String("ConfigureSettingsRadioButton"));
+    boxLayout->addWidget(m_configureSettings);
+    connect(m_configureSettings, &QAbstractButton::toggled, this, &IntroductionPage::setPackageManager);
 
     m_removeAllComponents = new QRadioButton(tr("&Remove all components"), this);
     m_removeAllComponents->setObjectName(QLatin1String("UninstallerRadioButton"));
@@ -1777,6 +1783,7 @@ void IntroductionPage::setMaintenanceToolsEnabled(bool enable)
     m_packageManager->setEnabled(enable && !m_offlineMaintenanceTool);
     m_updateComponents->setEnabled(enable && !m_offlineMaintenanceTool
         && ProductKeyCheck::instance()->hasValidKey());
+    m_configureSettings->setEnabled(enable && !m_offlineMaintenanceTool);
     m_removeAllComponents->setEnabled(enable);
 }
 
@@ -1790,6 +1797,7 @@ void IntroductionPage::setMaintainerToolsEnabled(bool enable)
     m_packageManager->setEnabled(enable && !m_offlineMaintenanceTool);
     m_updateComponents->setEnabled(enable && !m_offlineMaintenanceTool
         && ProductKeyCheck::instance()->hasValidKey());
+    m_configureSettings->setEnabled(enable && !m_offlineMaintenanceTool);
 }
 
 /*!
@@ -1988,6 +1996,7 @@ void IntroductionPage::showWidgets(bool show)
     m_packageManager->setVisible(show);
     m_updateComponents->setVisible(show);
     m_removeAllComponents->setVisible(show);
+    m_configureSettings->setVisible(show);
 }
 
 /*!
