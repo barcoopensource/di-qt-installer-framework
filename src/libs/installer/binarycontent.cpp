@@ -94,8 +94,8 @@ qint64 BinaryContent::findMagicCookie(QFile *in, quint64 magicCookie)
             return (fileSize - maxSearch) + searched;
         --searched;
     }
-    throw Error(QCoreApplication::translate("QInstaller", "No marker found, stopped after %1.")
-        .arg(humanReadableSize(maxSearch)));
+    // throw Error(QCoreApplication::translate("QInstaller", "No marker found, stopped after %1.")
+    //     .arg(humanReadableSize(maxSearch)));
 
     return -1; // never reached
 }
