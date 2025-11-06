@@ -165,7 +165,7 @@ public:
     PackagesList remotePackages();
     bool fetchRemotePackagesTree(const QStringList& components = QStringList());
     Q_INVOKABLE bool fetchCompressedPackagesTree();
-    Q_INVOKABLE QStringList getDeviceHardwareIds();
+    Q_INVOKABLE QStringList getGraphicsDeviceIds();
     bool fetchPackagesWithFallbackRepositories(const QStringList& components, bool &fallBackReposFetched);
 
     bool run();

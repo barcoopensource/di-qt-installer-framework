@@ -1700,9 +1700,9 @@ bool PackageManagerCore::fetchCompressedPackagesTree()
     return fetchPackagesTree(packages, installedPackages);
 }
 
-QStringList PackageManagerCore::getDeviceHardwareIds()
+QStringList PackageManagerCore::getGraphicsDeviceIds()
 {
-    std::vector<std::wstring> listOfHardwareIds;
+    std::vector<std::wstring> graphicsDeviceIds;
     SP_DEVINFO_DATA deviceInfoData = {};
     deviceInfoData.cbSize = sizeof(deviceInfoData);
     HDEVINFO DeviceInfoSet = SetupDiGetClassDevs(
@@ -1732,19 +1732,19 @@ QStringList PackageManagerCore::getDeviceHardwareIds()
             // Remove the revision part of the hardware ID for comparison
             std::wstring hardwareIdString = hardwareID;
             hardwareIdString = hardwareIdString.substr(0, hardwareIdString.rfind(L"&REV_"));
-            listOfHardwareIds.push_back(hardwareIdString);
+            graphicsDeviceIds.push_back(hardwareIdString);
         }
     }
 
-    if(listOfHardwareIds.empty())
+    if(graphicsDeviceIds.empty())
     {
         return QStringList();
     }
     else{
         QStringList retList;
-        retList.reserve(listOfHardwareIds.size()); // pre-allocate for efficiency
+        retList.reserve(graphicsDeviceIds.size()); // pre-allocate for efficiency
 
-        for (const auto& wstr : listOfHardwareIds) {
+        for (const auto& wstr : graphicsDeviceIds) {
             retList << QString::fromStdWString(wstr);
         }
         return retList;
