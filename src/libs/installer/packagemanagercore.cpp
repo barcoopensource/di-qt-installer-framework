@@ -1546,6 +1546,11 @@ bool PackageManagerCore::fetchLocalPackagesTree()
     std::function<void(QList<LocalPackage> *, bool)> loadLocalPackages;
     loadLocalPackages = [&](QList<LocalPackage> *treeNamePackages, bool firstRun) {
         foreach (auto &package, (firstRun ? installedPackages.values() : *treeNamePackages)) {
+            if (package.virtualComp && package.autoDependencies.isEmpty()) {
+                if (!d->m_localVirtualComponents.contains(package.name))
+                    d->m_localVirtualComponents.append(package.name);
+            }
+
             if (firstRun && !package.treeName.first.isEmpty()) {
                 // Package has a tree name, leave for later
                 treeNamePackages->append(package);
