@@ -3029,11 +3029,15 @@ bool PackageManagerCorePrivate::fetchMetaInformationFromRepositories(DownloadTyp
     }
 
     if (m_metadataJob.error() != Job::NoError) {
+        bool isCompressedRepo = (type == DownloadType::CompressedPackage);
         switch (m_metadataJob.error()) {
             case QInstaller::UserIgnoreError:
                 break;  // we can simply ignore this error, the user knows about it
             default:
-                // setStatus(PackageManagerCore::Failure, m_metadataJob.errorString());   //previous false compressed repo will block next right compressed one
+                if(isCompressedRepo){
+                    return m_repoFetched;   //previous false compressed repo will block next right compressed one
+                }
+                setStatus(PackageManagerCore::Failure, m_metadataJob.errorString());   
                 return m_repoFetched;
         }
     }
