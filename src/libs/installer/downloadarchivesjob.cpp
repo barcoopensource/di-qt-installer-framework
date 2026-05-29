@@ -175,7 +175,6 @@ void DownloadArchivesJob::finishedSignatureDownload()
 {
     Q_ASSERT(m_downloader != nullptr);
     QFile signatureFile(m_downloader->downloadedFileName());
-    emit outputTextChanged(tr("signature file path: %1").arg(m_downloader->downloadedFileName()));
     if (signatureFile.open(QFile::ReadOnly)) {
         emit signatureDownloadReady(m_downloader->downloadedFileName());
         signatureFile.close();
