@@ -3100,6 +3100,10 @@ void FinishedPage::entering()
                     this, &FinishedPage::cleanupChangedConnects);
         }
         setButtonText(QWizard::CommitButton, tr("Restart"));
+        if (QAbstractButton *commit = gui()->button(QWizard::CommitButton))
+        {
+            commit->setVisible(false);
+        }
         setButtonText(QWizard::CancelButton, gui()->defaultButtonText(QWizard::FinishButton));
     } else {
         if (packageManagerCore()->isInstaller()) {
@@ -3177,6 +3181,10 @@ void FinishedPage::leaving()
 
     if (QAbstractButton *cancel = gui()->button(QWizard::CancelButton))
         cancel->setVisible(false);
+
+    if (QAbstractButton *commit = gui()->button(QWizard::CommitButton)) {
+        commit->setVisible(true);
+    }
     gui()->updateButtonLayout();
 
     setButtonText(QWizard::CommitButton, gui()->defaultButtonText(QWizard::CommitButton));
