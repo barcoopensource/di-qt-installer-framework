@@ -83,6 +83,10 @@
 #endif
 
 #include <QStandardPaths>
+#include <QUrlQuery>
+#include <QUuid>
+#include <QJsonDocument>
+#include <QJsonObject>
 
 /*!
     \namespace QInstaller
@@ -1684,6 +1688,7 @@ PackagesList PackageManagerCore::remotePackages()
 */
 bool PackageManagerCore::fetchCompressedPackagesTree()
 {
+    emit startAllComponentsReset();
     const LocalPackagesMap installedPackages = d->localInstalledPackages();
     if (!isInstaller() && status() == Failure)
         return false;
@@ -2087,7 +2092,7 @@ bool PackageManagerCore::addQBspRepositories(const QStringList &repositories)
         set.insert(repository);
     }
     if (set.count() > 0) {
-        settings().addTemporaryRepositories(set, false);
+        settings().setTemporaryRepositories(set, true);
         return true;
     }
     return false;
@@ -4031,6 +4036,16 @@ bool PackageManagerCore::getHttpProxyAuth() const
 
 }
 
+bool PackageManagerCore::proxyConnectionTest(const QString &probeUrlStr, const int proxyConnectionTestTimeoutMs) const
+{
+    return d->proxyConnectionTest(probeUrlStr, proxyConnectionTestTimeoutMs);
+}
+
+void PackageManagerCore::stopProxyConnectionTest()
+{
+    d->stopProxyConnectionTest();
+}
+
 QString PackageManagerCore::getFtpProxyHost() const
 {
     QNetworkProxy proxy = d->m_data.settings().ftpProxy();
@@ -5160,15 +5175,15 @@ ComponentModel *PackageManagerCore::componentModel(PackageManagerCore *core, con
 
     model->setObjectName(objectName);
     model->setHeaderData(ComponentModelHelper::NameColumn, Qt::Horizontal,
-        ComponentModel::tr("Component Name"));
+        ComponentModel::tr("Component name"));
     model->setHeaderData(ComponentModelHelper::ActionColumn, Qt::Horizontal,
         ComponentModel::tr("Action"));
     model->setHeaderData(ComponentModelHelper::InstalledVersionColumn, Qt::Horizontal,
-        ComponentModel::tr("Installed Version"));
+        ComponentModel::tr("Old version"));
     model->setHeaderData(ComponentModelHelper::NewVersionColumn, Qt::Horizontal,
-        ComponentModel::tr("New Version"));
+        ComponentModel::tr("New version"));
     model->setHeaderData(ComponentModelHelper::ReleaseDateColumn, Qt::Horizontal,
-        ComponentModel::tr("Release Date"));
+        ComponentModel::tr("Release date"));
     model->setHeaderData(ComponentModelHelper::UncompressedSizeColumn, Qt::Horizontal,
         ComponentModel::tr("Size"));
 
@@ -5252,4 +5267,120 @@ QStringList PackageManagerCore::parseNames(const QStringList &requirements)
         names.append(name);
     }
     return names;
+}
+
+void PackageManagerCore::healthCheck(const QString& url) const
+{
+    stopHealthCheck();
+    QNetworkRequest request(QUrl(url + QStringLiteral("/health")));
+    request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
+    d->m_healthCheckReply = d->m_nam.get(request);
+    connect(d->m_healthCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onHealthCheckFinished);
+}
+
+void PackageManagerCore::stopHealthCheck() const
+{
+    if (!d->m_healthCheckReply)
+    {
+        return;
+    }   
+    disconnect(d->m_healthCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onHealthCheckFinished);
+    if (d->m_healthCheckReply->isRunning())
+        d->m_healthCheckReply->abort();
+
+    d->m_healthCheckReply->deleteLater();
+    d->m_healthCheckReply = nullptr;
+}
+
+void PackageManagerCore::onHealthCheckFinished()
+{
+    if (!d->m_healthCheckReply)
+    {
+        Q_EMIT healthCheckFinished(QNetworkReply::UnknownNetworkError);
+        return;
+    }
+    disconnect(d->m_healthCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onHealthCheckFinished);
+    const QNetworkReply::NetworkError error = d->m_healthCheckReply->error();
+
+    Q_EMIT healthCheckFinished(error);
+    d->m_healthCheckReply->deleteLater();
+    d->m_healthCheckReply = nullptr;
+}
+
+void PackageManagerCore::productKeyCheck(const QString& url, const QString& orgid,
+    const QString& orgkey, const QString& clientID) const
+{
+    stopProductKeyCheck();
+    QString agentUuid = d->macAddress();
+    if (agentUuid.isEmpty()) {
+        agentUuid = QUuid::createUuid().toString(QUuid::WithoutBraces);
+    }
+
+    QUrl baseUrl(url);
+    const QString alternativeHost = QString::fromUtf8(qgetenv("IAM_ALTERNATIVE_HOST"));
+    if (!alternativeHost.isEmpty()) {
+        baseUrl.setUrl(alternativeHost);
+    }
+    baseUrl.setPath(baseUrl.path() + QStringLiteral("/iam/admin/") + orgid + QStringLiteral("/agents/") + agentUuid + QStringLiteral("/registrationtokens"));
+
+    QUrlQuery query;
+    query.addQueryItem(QStringLiteral("client_id"), clientID);
+    baseUrl.setQuery(query.query());
+    baseUrl = baseUrl.url(QUrl::FullyEncoded);
+
+    const QString authentication = QStringLiteral("%1:%2").arg(orgid).arg(orgkey);
+    const QByteArray authenticationValue = QByteArrayLiteral("Basic ") +
+                                           authentication.toUtf8().toBase64();
+
+    QNetworkRequest registrationRequest(baseUrl);
+    registrationRequest.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
+    registrationRequest.setHeader(QNetworkRequest::ContentTypeHeader,
+                                  QByteArrayLiteral("application/json"));
+    registrationRequest.setRawHeader(QStringLiteral("authorization").toUtf8(),
+                                     authenticationValue);
+
+    d->m_productKeyCheckReply = d->m_nam.post(registrationRequest, QByteArray());
+    connect(d->m_productKeyCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onProductKeyCheckFinished);
+}
+
+void PackageManagerCore::stopProductKeyCheck() const
+{
+    if (!d->m_productKeyCheckReply)
+    {
+        return;
+    }
+    disconnect(d->m_productKeyCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onProductKeyCheckFinished);
+    if (d->m_productKeyCheckReply->isRunning())
+        d->m_productKeyCheckReply->abort();
+
+    d->m_productKeyCheckReply->deleteLater();
+    d->m_productKeyCheckReply = nullptr;
+}
+
+void PackageManagerCore::onProductKeyCheckFinished()
+{
+    if (!d->m_productKeyCheckReply)
+    {
+        Q_EMIT productKeyCheckFinished(QNetworkReply::UnknownNetworkError);
+        return;
+    }
+    disconnect(d->m_productKeyCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onProductKeyCheckFinished);
+    const QNetworkReply::NetworkError error = d->m_productKeyCheckReply->error();
+    if (error != QNetworkReply::NoError)
+    {
+        Q_EMIT productKeyCheckFinished(error);
+    }
+    else
+    {
+        const QByteArray serverToken = d->m_productKeyCheckReply->readAll();
+        QJsonParseError parseError;
+        const QJsonObject tokenObject = QJsonDocument::fromJson(serverToken, &parseError).object();
+        if ((parseError.error == QJsonParseError::NoError) && !tokenObject.isEmpty()) {
+            Q_EMIT productKeyCheckFinished(QNetworkReply::NoError);
+        } else {
+            Q_EMIT productKeyCheckFinished(QNetworkReply::ProtocolFailure);
+        }
+    }
+    d->m_productKeyCheckReply->deleteLater();
+    d->m_productKeyCheckReply = nullptr;
 }
