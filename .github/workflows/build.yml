@@ -43,7 +43,6 @@ jobs:
   
   release_package:
     needs: build_installer
-    if: github.event_name == 'release'
     permissions:
       contents: write
     runs-on: ubuntu-24.04
@@ -55,8 +54,7 @@ jobs:
               name: qif-artifact
               path: dist/
         - run: cd dist; zip -r ../qif-package.zip .
-        - run:
-              gh release upload ${{ github.event.release.tag_name }}
-              qif-package.zip
-          env:
-              GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        - uses: actions/upload-artifact@v4
+          with:
+              name: qif-package
+              path: qif-package.zip
