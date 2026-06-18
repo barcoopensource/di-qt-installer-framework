@@ -83,6 +83,8 @@
 #endif
 
 #include <QStandardPaths>
+#include <QNetworkProxyFactory>
+#include <QNetworkProxyQuery>
 #include <QUrlQuery>
 #include <QUuid>
 #include <QJsonDocument>
@@ -5269,10 +5271,40 @@ QStringList PackageManagerCore::parseNames(const QStringList &requirements)
     return names;
 }
 
+static void applyNetworkProxyForUrl(QNetworkAccessManager *networkAccessManager,
+    const Settings &settings, const QUrl &url)
+{
+    if (!networkAccessManager)
+        return;
+
+    switch (settings.proxyType()) {
+    case Settings::NoProxy:
+        networkAccessManager->setProxy(QNetworkProxy(QNetworkProxy::NoProxy));
+        return;
+    case Settings::UserDefinedProxy:
+        networkAccessManager->setProxy(settings.httpProxy());
+        return;
+    case Settings::SystemProxy:
+        break;
+    }
+
+    const QList<QNetworkProxy> proxies = QNetworkProxyFactory::systemProxyForQuery(QNetworkProxyQuery(url));
+    for (const QNetworkProxy &proxy : proxies) {
+        if (proxy.type() != QNetworkProxy::NoProxy && !proxy.hostName().isEmpty() && proxy.port() > 0) {
+            networkAccessManager->setProxy(proxy);
+            return;
+        }
+    }
+
+    // If system proxy query returns no usable endpoint, continue with a direct connection.
+    networkAccessManager->setProxy(QNetworkProxy(QNetworkProxy::NoProxy));
+}
+
 void PackageManagerCore::healthCheck(const QString& url) const
 {
     stopHealthCheck();
     QNetworkRequest request(QUrl(url + QStringLiteral("/health")));
+    applyNetworkProxyForUrl(&d->m_nam, settings(), request.url());
     request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     d->m_healthCheckReply = d->m_nam.get(request);
     connect(d->m_healthCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onHealthCheckFinished);
@@ -5333,6 +5365,7 @@ void PackageManagerCore::productKeyCheck(const QString& url, const QString& orgi
                                            authentication.toUtf8().toBase64();
 
     QNetworkRequest registrationRequest(baseUrl);
+    applyNetworkProxyForUrl(&d->m_nam, settings(), registrationRequest.url());
     registrationRequest.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     registrationRequest.setHeader(QNetworkRequest::ContentTypeHeader,
                                   QByteArrayLiteral("application/json"));
