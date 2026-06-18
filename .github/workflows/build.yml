@@ -53,8 +53,7 @@ jobs:
           with:
               name: qif-artifact
               path: dist/
-        - run: cd dist; zip -r ../qif-package.zip .
         - uses: actions/upload-artifact@v4
           with:
               name: qif-package
-              path: qif-package.zip
+              path: dist/
