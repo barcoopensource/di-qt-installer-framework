@@ -5299,7 +5299,7 @@ void PackageManagerCore::healthCheck(const QString& url) const
 {
     stopHealthCheck();
     QNetworkRequest request(QUrl(url + QStringLiteral("/health")));
-    d->m_nam.setProxy(resolveNetworkProxyForUrl(settings(), request.url()));
+    QNetworkProxy::setApplicationProxy(resolveNetworkProxyForUrl(settings(), request.url()));
     request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     d->m_healthCheckReply = d->m_nam.get(request);
     connect(d->m_healthCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onHealthCheckFinished);
@@ -5360,7 +5360,7 @@ void PackageManagerCore::productKeyCheck(const QString& url, const QString& orgi
                                            authentication.toUtf8().toBase64();
 
     QNetworkRequest registrationRequest(baseUrl);
-    d->m_nam.setProxy(resolveNetworkProxyForUrl(settings(), registrationRequest.url()));
+    QNetworkProxy::setApplicationProxy(resolveNetworkProxyForUrl(settings(), registrationRequest.url()));
     registrationRequest.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     registrationRequest.setHeader(QNetworkRequest::ContentTypeHeader,
                                   QByteArrayLiteral("application/json"));
