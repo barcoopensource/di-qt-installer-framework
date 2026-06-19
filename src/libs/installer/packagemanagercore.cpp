@@ -5280,11 +5280,14 @@ static void applyNetworkProxyForUrl(QNetworkAccessManager *networkAccessManager,
     switch (settings.proxyType()) {
     case Settings::NoProxy:
         networkAccessManager->setProxy(QNetworkProxy(QNetworkProxy::NoProxy));
+        qInfo() << "Not using any proxy for url:" << url.toString();
         return;
     case Settings::UserDefinedProxy:
+        qInfo() << "Using user defined proxy:" << settings.httpProxy().hostName() << ":" << settings.httpProxy().port();
         networkAccessManager->setProxy(settings.httpProxy());
         return;
     case Settings::SystemProxy:
+        qInfo() << "Using system proxy for url:" << url.toString();
         break;
     }
 
@@ -5295,7 +5298,7 @@ static void applyNetworkProxyForUrl(QNetworkAccessManager *networkAccessManager,
             return;
         }
     }
-
+    qWarning() << "No system proxy found for url:" << url.toString();
     // If system proxy query returns no usable endpoint, continue with a direct connection.
     networkAccessManager->setProxy(QNetworkProxy(QNetworkProxy::NoProxy));
 }
