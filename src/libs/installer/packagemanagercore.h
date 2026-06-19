@@ -426,6 +426,7 @@ public:
     static QString checkableName(const QString &name);
     static void parseNameAndVersion(const QString &requirement, QString *name, QString *version);
     static QStringList parseNames(const QStringList &requirements);
+    void applyProxySettings(const Settings &settings, const QUrl &url) const;
     void commitSessionOperations();
     void clearLicenses();
     QHash<QString, QMap<QString, QString>> sortedLicenses();
