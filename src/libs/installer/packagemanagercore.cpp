@@ -5271,21 +5271,15 @@ QStringList PackageManagerCore::parseNames(const QStringList &requirements)
     return names;
 }
 
-static void applyNetworkProxyForUrl(QNetworkAccessManager *networkAccessManager,
-    const Settings &settings, const QUrl &url)
+static QNetworkProxy resolveNetworkProxyForUrl(const Settings &settings, const QUrl &url)
 {
-    if (!networkAccessManager)
-        return;
-
     switch (settings.proxyType()) {
     case Settings::NoProxy:
-        networkAccessManager->setProxy(QNetworkProxy(QNetworkProxy::NoProxy));
         qInfo() << "Not using any proxy for url:" << url.toString();
-        return;
+        return QNetworkProxy(QNetworkProxy::NoProxy);
     case Settings::UserDefinedProxy:
         qInfo() << "Using user defined proxy:" << settings.httpProxy().hostName() << ":" << settings.httpProxy().port();
-        networkAccessManager->setProxy(settings.httpProxy());
-        return;
+        return settings.httpProxy();
     case Settings::SystemProxy:
         qInfo() << "Using system proxy for url:" << url.toString();
         break;
@@ -5293,21 +5287,19 @@ static void applyNetworkProxyForUrl(QNetworkAccessManager *networkAccessManager,
 
     const QList<QNetworkProxy> proxies = QNetworkProxyFactory::systemProxyForQuery(QNetworkProxyQuery(url));
     for (const QNetworkProxy &proxy : proxies) {
-        if (proxy.type() != QNetworkProxy::NoProxy && !proxy.hostName().isEmpty() && proxy.port() > 0) {
-            networkAccessManager->setProxy(proxy);
-            return;
-        }
+        if (proxy.type() != QNetworkProxy::NoProxy && !proxy.hostName().isEmpty() && proxy.port() > 0)
+            return proxy;
     }
     qWarning() << "No system proxy found for url:" << url.toString();
     // If system proxy query returns no usable endpoint, continue with a direct connection.
-    networkAccessManager->setProxy(QNetworkProxy(QNetworkProxy::NoProxy));
+    return QNetworkProxy(QNetworkProxy::NoProxy);
 }
 
 void PackageManagerCore::healthCheck(const QString& url) const
 {
     stopHealthCheck();
     QNetworkRequest request(QUrl(url + QStringLiteral("/health")));
-    applyNetworkProxyForUrl(&d->m_nam, settings(), request.url());
+    d->m_nam.setProxy(resolveNetworkProxyForUrl(settings(), request.url()));
     request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     d->m_healthCheckReply = d->m_nam.get(request);
     connect(d->m_healthCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onHealthCheckFinished);
@@ -5368,7 +5360,7 @@ void PackageManagerCore::productKeyCheck(const QString& url, const QString& orgi
                                            authentication.toUtf8().toBase64();
 
     QNetworkRequest registrationRequest(baseUrl);
-    applyNetworkProxyForUrl(&d->m_nam, settings(), registrationRequest.url());
+    d->m_nam.setProxy(resolveNetworkProxyForUrl(settings(), registrationRequest.url()));
     registrationRequest.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     registrationRequest.setHeader(QNetworkRequest::ContentTypeHeader,
                                   QByteArrayLiteral("application/json"));
