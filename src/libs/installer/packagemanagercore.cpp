@@ -3916,6 +3916,8 @@ QString PackageManagerCore::value(const QString &key, const QString &defaultValu
     return d->m_data.value(key, defaultValue, static_cast<QSettings::Format>(format)).toString();
 }
 
+static QNetworkProxy resolveNetworkProxyForUrl(const Settings &settings, const QUrl &url);
+
 QString PackageManagerCore::getProxyMode() const
 {
     const Settings &settings = d->m_data.settings();
@@ -3934,22 +3936,29 @@ QString PackageManagerCore::getProxyMode() const
 
 void PackageManagerCore::setProxyMode(const QString &proxyType)
 {
+    bool modeUpdated = false;
     if(proxyType == QStringLiteral("no"))
     {
         d->m_data.settings().setProxyType(QInstaller::Settings::NoProxy);
+        modeUpdated = true;
     }
     else if(proxyType == QStringLiteral("system"))
     {
         d->m_data.settings().setProxyType(QInstaller::Settings::SystemProxy);
+        modeUpdated = true;
     }
     else if(proxyType == QStringLiteral("manual"))
     {
         d->m_data.settings().setProxyType(QInstaller::Settings::UserDefinedProxy);
+        modeUpdated = true;
     }
     else
     {
         qWarning() << "proxy mode does not exist";
     }
+
+    if (modeUpdated)
+        applyProxySettings(d->m_data.settings(), QUrl());
 }
 
 QString PackageManagerCore::getHttpProxyHost() const
@@ -3966,6 +3975,7 @@ void PackageManagerCore::setHttpProxyHost(const QString &hostName)
     proxy.setHostName(hostName);
     d->m_data.settings().setHttpProxy(proxy);
     qInfo() << "set proxy hostname" << proxy.hostName();
+    applyProxySettings(d->m_data.settings(), QUrl());
 }
 
 QString PackageManagerCore::getHttpProxyPort() const
@@ -3985,6 +3995,7 @@ void PackageManagerCore::setHttpProxyPort(const QString &port)
     {
         d->m_data.settings().setHttpProxy(proxy);
         qInfo() << "set proxy port" << proxy.port();
+        applyProxySettings(d->m_data.settings(), QUrl());
     }
     else
     {
@@ -4006,6 +4017,7 @@ void PackageManagerCore::setHttpProxyUser(const QString &userName)
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
     proxy.setUser(userName);
     d->m_data.settings().setHttpProxy(proxy);
+    applyProxySettings(d->m_data.settings(), QUrl());
 }
 
 QString PackageManagerCore::getHttpProxyPwd() const
@@ -4021,6 +4033,7 @@ void PackageManagerCore::setHttpProxyPwd(const QString &password)
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
     proxy.setPassword(password);
     d->m_data.settings().setHttpProxy(proxy);
+    applyProxySettings(d->m_data.settings(), QUrl());
 }
 
 bool PackageManagerCore::getHttpProxyAuth() const
@@ -4062,6 +4075,7 @@ void PackageManagerCore::setFtpProxyHost(const QString &hostName)
     proxy.setHostName(hostName);
     d->m_data.settings().setFtpProxy(proxy);
     qInfo() << "set proxy hostname" << proxy.hostName();
+    applyProxySettings(d->m_data.settings(), QUrl());
 }
 
 QString PackageManagerCore::getFtpProxyPort() const
@@ -4082,6 +4096,7 @@ void PackageManagerCore::setFtpProxyPort(const QString &port)
     {
         d->m_data.settings().setFtpProxy(proxy);
         qInfo() << "set proxy port" << proxy.port();
+        applyProxySettings(d->m_data.settings(), QUrl());
     }
     else
     {
@@ -4103,6 +4118,7 @@ void PackageManagerCore::setFtpProxyUser(const QString &userName)
     proxy.setUser(userName);
     d->m_data.settings().setFtpProxy(proxy);
     qInfo() << "set proxy port" << proxy.user();
+    applyProxySettings(d->m_data.settings(), QUrl());
 }
 
 QString PackageManagerCore::getFtpProxyPwd() const
@@ -4119,6 +4135,7 @@ void PackageManagerCore::setFtpProxyPwd(const QString &password)
     proxy.setPassword(password);
     d->m_data.settings().setFtpProxy(proxy);
     qInfo() << "set proxy port" << proxy.password();
+    applyProxySettings(d->m_data.settings(), QUrl());
 }
 
 bool PackageManagerCore::getFtpProxyAuth() const
@@ -5154,6 +5171,30 @@ void PackageManagerCore::updateDisplayVersions(const QString &displayKey)
 
 }
 
+void PackageManagerCore::applyProxySettings(const Settings &settings, const QUrl &url) const
+{
+    switch (settings.proxyType()) {
+    case Settings::NoProxy:
+        QNetworkProxy::setApplicationProxy(QNetworkProxy(QNetworkProxy::NoProxy));
+        return;
+    case Settings::UserDefinedProxy: {
+        const QNetworkProxy proxy = settings.httpProxy();
+        if (proxy.hostName().isEmpty() || proxy.port() <= 0) {
+            qWarning() << "Manual proxy settings are incomplete. Falling back to direct connection.";
+            QNetworkProxy::setApplicationProxy(QNetworkProxy(QNetworkProxy::NoProxy));
+            return;
+        }
+        QNetworkProxy::setApplicationProxy(proxy);
+        return;
+    }
+    case Settings::SystemProxy:
+        break;
+    }
+
+    const QUrl resolvedUrl = url.isValid() ? url : QUrl(QStringLiteral("https://www.qt.io"));
+    QNetworkProxy::setApplicationProxy(resolveNetworkProxyForUrl(settings, resolvedUrl));
+}
+
 QString PackageManagerCore::findDisplayVersion(const QString &componentName,
     const QHash<QString, Component *> &components, const QString &versionKey, QHash<QString, bool> &visited)
 {
@@ -5299,7 +5340,7 @@ void PackageManagerCore::healthCheck(const QString& url) const
 {
     stopHealthCheck();
     QNetworkRequest request(QUrl(url + QStringLiteral("/health")));
-    QNetworkProxy::setApplicationProxy(resolveNetworkProxyForUrl(settings(), request.url()));
+    applyProxySettings(settings(), request.url());
     request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     d->m_healthCheckReply = d->m_nam.get(request);
     connect(d->m_healthCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onHealthCheckFinished);
@@ -5360,7 +5401,7 @@ void PackageManagerCore::productKeyCheck(const QString& url, const QString& orgi
                                            authentication.toUtf8().toBase64();
 
     QNetworkRequest registrationRequest(baseUrl);
-    QNetworkProxy::setApplicationProxy(resolveNetworkProxyForUrl(settings(), registrationRequest.url()));
+    applyProxySettings(settings(), registrationRequest.url());
     registrationRequest.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     registrationRequest.setHeader(QNetworkRequest::ContentTypeHeader,
                                   QByteArrayLiteral("application/json"));
