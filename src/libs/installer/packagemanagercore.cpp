@@ -5191,8 +5191,9 @@ void PackageManagerCore::applyProxySettings(const Settings &settings, const QUrl
         break;
     }
 
-    const QUrl resolvedUrl = url.isValid() ? url : QUrl(QStringLiteral("https://www.qt.io"));
-    QNetworkProxy::setApplicationProxy(resolveNetworkProxyForUrl(settings, resolvedUrl));
+    if(!url.isValid())
+        return;
+    QNetworkProxy::setApplicationProxy(resolveNetworkProxyForUrl(settings, url));
 }
 
 QString PackageManagerCore::findDisplayVersion(const QString &componentName,
@@ -5341,6 +5342,11 @@ void PackageManagerCore::healthCheck(const QString& url) const
     stopHealthCheck();
     QNetworkRequest request(QUrl(url + QStringLiteral("/health")));
     applyProxySettings(settings(), request.url());
+    const QNetworkProxy proxy = QNetworkProxy::applicationProxy();
+    qInfo() << "Health check url:" << request.url().toString()
+            << "proxy type:" << proxy.type()
+            << "host:" << proxy.hostName()
+            << "port:" << proxy.port();
     request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
     d->m_healthCheckReply = d->m_nam.get(request);
     connect(d->m_healthCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onHealthCheckFinished);
