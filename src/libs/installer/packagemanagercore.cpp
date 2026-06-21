@@ -5386,7 +5386,7 @@ void PackageManagerCore::stopHealthCheck() const
 
 void PackageManagerCore::onHealthCheckFinished()
 {
-    const bool testErrorCyclingEnabled = true
+    const bool testErrorCyclingEnabled = true;
     if (!d->m_healthCheckReply)
     {
         const QNetworkReply::NetworkError emittedError = testErrorCyclingEnabled
