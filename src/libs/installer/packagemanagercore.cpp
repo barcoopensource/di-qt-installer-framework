@@ -89,6 +89,7 @@
 #include <QUuid>
 #include <QJsonDocument>
 #include <QJsonObject>
+#include <QRandomGenerator>
 
 /*!
     \namespace QInstaller
@@ -5337,6 +5338,23 @@ static QNetworkProxy resolveNetworkProxyForUrl(const Settings &settings, const Q
     return QNetworkProxy(QNetworkProxy::NoProxy);
 }
 
+
+static QNetworkReply::NetworkError nextCycledHealthCheckError()
+{
+    static const QNetworkReply::NetworkError kTestErrors[] = {
+        QNetworkReply::NoError,
+        QNetworkReply::ProxyConnectionRefusedError,
+        QNetworkReply::ProxyTimeoutError,
+        QNetworkReply::ProxyNotFoundError,
+        QNetworkReply::ProxyAuthenticationRequiredError,
+    };
+    constexpr int kTestErrorCount = int(sizeof(kTestErrors) / sizeof(kTestErrors[0]));
+    static int currentIndex = QRandomGenerator::global()->bounded(kTestErrorCount);
+    const QNetworkReply::NetworkError error = kTestErrors[currentIndex];
+    currentIndex = (currentIndex + 1) % kTestErrorCount;
+    return error;
+}
+
 void PackageManagerCore::healthCheck(const QString& url) const
 {
     stopHealthCheck();
@@ -5368,15 +5386,29 @@ void PackageManagerCore::stopHealthCheck() const
 
 void PackageManagerCore::onHealthCheckFinished()
 {
+    const bool testErrorCyclingEnabled = true
     if (!d->m_healthCheckReply)
     {
-        Q_EMIT healthCheckFinished(QNetworkReply::UnknownNetworkError);
+        const QNetworkReply::NetworkError emittedError = testErrorCyclingEnabled
+            ? nextCycledHealthCheckError()
+            : QNetworkReply::UnknownNetworkError;
+        if (testErrorCyclingEnabled) {
+            qInfo() << "Health check test mode: emitting cycled error" << emittedError;
+        }
+        Q_EMIT healthCheckFinished(emittedError);
         return;
     }
     disconnect(d->m_healthCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onHealthCheckFinished);
     const QNetworkReply::NetworkError error = d->m_healthCheckReply->error();
+    const QNetworkReply::NetworkError emittedError = testErrorCyclingEnabled
+        ? nextCycledHealthCheckError()
+        : error;
 
-    Q_EMIT healthCheckFinished(error);
+    if (testErrorCyclingEnabled) {
+        qInfo() << "Health check test mode: actual error" << error << "emitting cycled error" << emittedError;
+    }
+
+    Q_EMIT healthCheckFinished(emittedError);
     d->m_healthCheckReply->deleteLater();
     d->m_healthCheckReply = nullptr;
 }
