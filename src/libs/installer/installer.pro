@@ -154,7 +154,9 @@ HEADERS += packagemanagercore.h \
     categorycombobox.h \
     horizontalruler.h \
     spacewidget.h   \
-    signatureverifier.h
+    signatureverifier.h \
+    ed25519signatureverifier.h \
+    ecdsap256signatureverifier.h
 
 SOURCES += packagemanagercore.cpp \
     abstractarchive.cpp \
@@ -250,7 +252,9 @@ SOURCES += packagemanagercore.cpp \
     categorycombobox.cpp \
     horizontalruler.cpp \
     spacewidget.cpp \
-    signatureverifier.cpp
+    signatureverifier.cpp \
+    ed25519signatureverifier.cpp \
+    ecdsap256signatureverifier.cpp
 
 macos:SOURCES += fileutils_mac.mm
 
