@@ -42,12 +42,16 @@
 #include "updatefinder.h"
 
 #include <QObject>
+#include <QNetworkAccessManager>
+#include <QNetworkReply>
+#include <QNetworkRequest>
 
 class Job;
 
 QT_FORWARD_DECLARE_CLASS(QFile)
 QT_FORWARD_DECLARE_CLASS(QFileDevice)
 QT_FORWARD_DECLARE_CLASS(QFileInfo)
+QT_FORWARD_DECLARE_CLASS(QTcpSocket)
 
 using namespace KDUpdater;
 
@@ -181,6 +185,9 @@ public:
 
     void setComponentSelection(const QString &id, Qt::CheckState state);
 
+    QString macAddress() const;
+    QMap<QString, QString> getdMacAddresses() const;
+
 signals:
     void installationStarted();
     void installationFinished();
@@ -233,6 +240,10 @@ public:
     bool m_autoAcceptLicenses;
     bool m_disableWriteMaintenanceTool;
     bool m_autoConfirmCommand;
+
+    QNetworkAccessManager m_nam;
+    QNetworkReply *m_healthCheckReply = nullptr;
+    QNetworkReply *m_productKeyCheckReply = nullptr;
 
 private slots:
     void infoMessage(Job *, const QString &message) {
@@ -288,7 +299,8 @@ private:
     void enableRepositoryCategory(const RepositoryCategory &repoCategory, const bool enable);
 
     bool installablePackagesFound(const QStringList& components);
-
+    bool proxyConnectionTest(const QString &probeUrlStr, const int proxyConnectionTestTimeoutMs = 5000);
+    void stopProxyConnectionTest();
     void deferredRename(const QString &oldName, const QString &newName, bool restart = false);
 
     // remove once we deprecate isSelected, setSelected etc...
@@ -345,6 +357,8 @@ private:
     bool m_allowCompressedRepositoryInstall;
     int m_connectedOperations;
     QStringList m_componentsToBeInstalled;
+    QScopedPointer<QTcpSocket> m_proxyTestSocket;
+    QEventLoop m_proxyTestEventLoop;
 };
 
 } // namespace QInstaller

@@ -74,8 +74,18 @@
 
 #include <QXmlStreamReader>
 #include <QXmlStreamWriter>
+#include <QNetworkProxyFactory>
+#include <QNetworkProxyQuery>
+#include <QEventLoop>
+#include <QTimer>
+#include <QTcpSocket>
+#include <QUrl>
 
 #include <errno.h>
+#ifdef Q_OS_WIN
+#include <iphlpapi.h>
+#pragma comment(lib, "iphlpapi.lib")
+#endif
 
 #ifdef Q_OS_WIN
 #include <qt_windows.h>
@@ -195,6 +205,7 @@ PackageManagerCorePrivate::PackageManagerCorePrivate(PackageManagerCore *core)
     , m_guiObject(nullptr)
     , m_remoteFileEngineHandler(nullptr)
     , m_datFileName(QString())
+    , m_proxyTestSocket(nullptr)
 #ifdef INSTALLCOMPRESSED
     , m_allowCompressedRepositoryInstall(true)
 #else
@@ -242,6 +253,7 @@ PackageManagerCorePrivate::PackageManagerCorePrivate(PackageManagerCore *core, q
     , m_guiObject(nullptr)
     , m_remoteFileEngineHandler(new RemoteFileEngineHandler)
     , m_datFileName(datFileName)
+    , m_proxyTestSocket(nullptr)
 #ifdef INSTALLCOMPRESSED
     , m_allowCompressedRepositoryInstall(true)
 #else
@@ -279,6 +291,100 @@ PackageManagerCorePrivate::PackageManagerCorePrivate(PackageManagerCore *core, q
     connect(this, &PackageManagerCorePrivate::offlineGenerationFinished,
             m_core, &PackageManagerCore::offlineGenerationFinished);
 }
+
+bool PackageManagerCorePrivate::proxyConnectionTest(const QString &probeUrlStr, const int proxyConnectionTestTimeoutMs)
+{
+    const Settings &settings = m_data.settings();
+    QNetworkProxy proxy;
+
+    if (settings.proxyType() == Settings::NoProxy) {
+        qWarning() << "Proxy test skipped: No Proxy is used.";
+        return true;
+    }
+
+    if (settings.proxyType() == Settings::UserDefinedProxy) {
+        proxy = settings.httpProxy();
+    } else {
+        const QUrl probeUrl(probeUrlStr);
+        const QList<QNetworkProxy> proxies = QNetworkProxyFactory::systemProxyForQuery(
+            QNetworkProxyQuery(probeUrl));
+
+        if (proxies.isEmpty()) {
+            qWarning() << "Proxy test skipped: No proxy is returned by system proxy query.";
+            return true;
+        }
+
+        for (const QNetworkProxy &candidate : proxies) {
+            if (candidate.type() != QNetworkProxy::NoProxy && !candidate.hostName().isEmpty()
+                    && candidate.port() > 0) {
+                proxy = candidate;
+                break;
+            }
+        }
+    }
+
+    if (proxy.hostName().isEmpty() || proxy.port() <= 0) {
+        qWarning() << "Proxy test skipped: no usable HTTP proxy endpoint.";
+        return true;
+    }
+
+    //Reason for not using 'waitForConnected': from official document-"This function may fail randomly on Windows. Consider using the event loop and the connected() signal if your software will run on Windows."
+    m_proxyTestSocket.reset(new QTcpSocket);
+    m_proxyTestSocket->connectToHost(proxy.hostName(), proxy.port());
+    bool isConnected = false;
+    QAbstractSocket::SocketError socketError = QAbstractSocket::UnknownSocketError;
+    QString errorString;
+
+    QTimer timeoutTimer;
+    timeoutTimer.setSingleShot(true);
+
+    connect(m_proxyTestSocket.data(), &QTcpSocket::connected, &m_proxyTestEventLoop, [&]() {
+        isConnected = true;
+        m_proxyTestEventLoop.quit();
+    });
+
+    connect(m_proxyTestSocket.data(), &QTcpSocket::errorOccurred, &m_proxyTestEventLoop,
+        [&](QAbstractSocket::SocketError error) {
+            socketError = error;
+            errorString = m_proxyTestSocket->errorString();
+            m_proxyTestEventLoop.quit();
+        });
+
+    connect(&timeoutTimer, &QTimer::timeout, &m_proxyTestEventLoop, [&]() {
+        socketError = QAbstractSocket::SocketTimeoutError;
+        errorString = QString::fromLatin1("Proxy test timed out.");
+        m_proxyTestSocket->abort();
+        m_proxyTestEventLoop.quit();
+    });
+
+    timeoutTimer.start(proxyConnectionTestTimeoutMs);
+    m_proxyTestEventLoop.exec();
+    timeoutTimer.stop();
+
+    if (isConnected) {
+        m_proxyTestSocket->disconnectFromHost();
+        m_proxyTestSocket.reset();
+        return true;
+    }
+
+    if (!errorString.isEmpty()){
+        qWarning() << "Proxy test failed:" << errorString << "Error code:" << socketError;
+        emit m_core->proxyTestErrorOccurred(errorString);
+    }else{
+        qWarning() << "Proxy test aborted.";
+    }
+    m_proxyTestSocket.reset();
+    return false;
+}
+
+void PackageManagerCorePrivate::stopProxyConnectionTest()
+{
+    if (!m_proxyTestSocket.isNull()) {
+        m_proxyTestSocket->abort();
+        m_proxyTestEventLoop.quit();
+    }
+}
+
 
 PackageManagerCorePrivate::~PackageManagerCorePrivate()
 {
@@ -3554,5 +3660,100 @@ void PackageManagerCorePrivate::createLocalDependencyHash(const QString &compone
         }
     }
 }
+
+QString PackageManagerCorePrivate::macAddress() const
+{
+    QString macAddress;
+    const QByteArray env = qgetenv("AGENT_IDENTIFIER");
+    if (!env.isEmpty())
+    {
+        macAddress = QString::fromLatin1(env);
+        return macAddress;
+    }
+
+     QMap<QString, QString> addressByGuid(getdMacAddresses());
+    if (addressByGuid.isEmpty())
+    {
+        qWarning() << "Could not find an device instance with a valid MAC address assigned.";
+        return QString();
+    }
+
+    QMap<QString, QString> addressByPnpInstanceId;
+    QString networkSettings = QStringLiteral("HKEY_LOCAL_MACHINE\\SYSTEM\\CurrentControlSet\\Control\\Network");
+    QString sep = QStringLiteral("\\");
+
+    QSettings network(networkSettings, QSettings::NativeFormat);
+
+    for (const QString &group : network.childGroups())
+    {
+        QSettings adapters(networkSettings + sep + group, QSettings::NativeFormat);
+        for (const QString &guid : addressByGuid.keys())
+        {
+            if (adapters.childGroups().contains(guid, Qt::CaseInsensitive)) {
+                QSettings adapter(networkSettings + sep + group + sep + guid + sep + QStringLiteral("Connection"),
+                                  QSettings::NativeFormat);
+                const QString pnpInstanceId = adapter.value(QStringLiteral("PnPInstanceId")).toString();
+                //Includes only MAC addresses assigned to a PCI hardware device,
+                //virtual instances or USB wifi adapters are excluded here
+                if (pnpInstanceId.startsWith(QStringLiteral("PCI")))
+                {
+                    addressByPnpInstanceId.insert(pnpInstanceId, addressByGuid[guid]);
+                }
+            }
+        }
+    }
+
+    if (addressByPnpInstanceId.isEmpty())
+    {
+        qWarning() << "Could not find a MAC address assigned to a hardware PCI device.";
+        return QString();
+    }
+
+    QStringList instanceIds = addressByPnpInstanceId.keys();
+    instanceIds.sort();
+
+    return addressByPnpInstanceId.value(instanceIds[0]);
+
+}
+
+//Returns a QMap with GUID:MAC address elements
+//These GUIDs refer to registry keys and contain information about the PnPDevice
+QMap<QString, QString> PackageManagerCorePrivate::getdMacAddresses() const
+{
+    QMap<QString, QString> addressByGuid;
+    IP_ADAPTER_INFO adapterInfo[32];             // Allocate information for up to 32 NICs
+    PIP_ADAPTER_INFO pAdapterInfo = adapterInfo;
+    DWORD dwBufLen = sizeof(adapterInfo);        // Save memory size of buffer
+    DWORD dwStatus = GetAdaptersInfo(            // Call GetAdapterInfo
+                        pAdapterInfo,             // [out] buffer to receive data
+                        &dwBufLen);              // [in] size of receive data buffer
+
+    //No network card? Other error?
+    if(dwStatus != ERROR_SUCCESS)
+        return addressByGuid;
+
+    char szBuffer[512];
+    for (PIP_ADAPTER_INFO ptr = pAdapterInfo; ptr; ptr = ptr->Next)
+    {
+        if(ptr->AddressLength > 0)
+        {
+            sprintf_s(szBuffer, sizeof(szBuffer), "%.2x:%.2x:%.2x:%.2x:%.2x:%.2x",
+                      ptr->Address[0],
+                      ptr->Address[1],
+                      ptr->Address[2],
+                      ptr->Address[3],
+                      ptr->Address[4],
+                      ptr->Address[5]
+                     );
+            QString address = QString::fromStdString(szBuffer);
+            QString guid = QString::fromLocal8Bit(ptr->AdapterName);
+            //Example: key="{C0B50026-7778-455B-89C5-DE64374C9BDD}", value="18:DB:F2:4E:FC:E9"
+            addressByGuid.insert(guid, address.toUpper());
+        }
+    }
+
+    return addressByGuid;
+}
+
 
 } // namespace QInstaller

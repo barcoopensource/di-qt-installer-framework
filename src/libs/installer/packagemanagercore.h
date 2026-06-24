@@ -51,6 +51,7 @@
 #include <RegStr.h>
 #include <devguid.h>
 #include <cfgmgr32.h>
+#include <QNetworkReply>
 
 // Link required Windows libraries
 #pragma comment(lib, "setupapi.lib")
@@ -105,9 +106,9 @@ public:
 
     enum WizardPage {
         Introduction = 0x1000,
-        TargetDirectory = 0x2000,
-        ComponentSelection = 0x3000,
-        LicenseCheck = 0x4000,
+        LicenseCheck = 0x2000,
+        TargetDirectory = 0x3000,
+        ComponentSelection = 0x4000,
         StartMenuSelection = 0x5000,
         ReadyForInstallation = 0x6000,
         PerformInstallation = 0x7000,
@@ -215,7 +216,8 @@ public:
     Q_INVOKABLE QString getHttpProxyPwd() const;
     Q_INVOKABLE void setHttpProxyPwd(const QString &password);
     Q_INVOKABLE bool getHttpProxyAuth() const;
-
+    Q_INVOKABLE bool proxyConnectionTest(const QString &probeUrlStr = QString(), const int proxyConnectionTestTimeoutMs = 5000) const;
+    Q_INVOKABLE void stopProxyConnectionTest();
     Q_INVOKABLE QString getFtpProxyHost() const;
     Q_INVOKABLE void setFtpProxyHost(const QString &hostName);
     Q_INVOKABLE QString getFtpProxyPort() const;
@@ -283,6 +285,13 @@ public:
 
     bool installationAllowedToDirectory(const QString &targetDirectory);
     QString targetDirWarning(const QString &targetDirectory) const;
+
+    //network check
+    Q_INVOKABLE void healthCheck(const QString& url) const;
+    Q_INVOKABLE void stopHealthCheck() const;
+    Q_INVOKABLE void productKeyCheck(const QString& url, const QString& orgid, 
+        const QString& orgkey, const QString& clientID) const;
+    Q_INVOKABLE void stopProductKeyCheck() const;
 
 public:
     ScriptEngine *componentScriptEngine() const;
@@ -447,6 +456,8 @@ public Q_SLOTS:
     void cancelMetaInfoJob();
     void componentsToInstallNeedsRecalculation(); // TODO: deprecated, remove
     void clearComponentsToInstallCalculated() {} // TODO: deprecated, remove
+    void onHealthCheckFinished();
+    void onProductKeyCheckFinished();
 
 Q_SIGNALS:
     void aboutCalculateComponentsToInstall() const;
@@ -499,6 +510,10 @@ Q_SIGNALS:
     void componentsRecalculated();
     void guiElementsReady();
     void installDirectoryChanged(const QString &newDirectory);
+    void proxyTestErrorOccurred(const QString &error);
+
+    void healthCheckFinished(QNetworkReply::NetworkError error);
+    void productKeyCheckFinished(QNetworkReply::NetworkError error);
 
 private:
     struct Data {
