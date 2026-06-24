@@ -43,6 +43,7 @@
 #include "repositorycategory.h"
 #include "componentselectionpage_p.h"
 #include "loggingutils.h"
+#include "maintenancetilebutton.h"
 
 #include "sysinfo.h"
 #include "globals.h"
@@ -80,9 +81,6 @@
 #include <QStyleFactory>
 #include <QRadioButton>
 #include <QHBoxLayout>
-#include <QPaintEvent>
-#include <QPainter>
-#include <QtSvg/QSvgRenderer>
 #include <QDebug>
 
 #include <QVBoxLayout>
@@ -97,86 +95,16 @@
 # include <QWinTaskbarButton>
 # include <QWinTaskbarProgress>
 #endif
+
+#endif // Used to track the global mouse position
+#if QT_VERSION >= QT_VERSION_CHECK(6, 0, 0)
+#define GET_GLOBAL_POS(ev) (ev->globalPosition().toPoint())
+#else
+#define GET_GLOBAL_POS(ev) (ev->globalPos())
 #endif
 
 using namespace KDUpdater;
 using namespace QInstaller;
-
-class MaintenanceTileButton : public QRadioButton
-{
-    Q_OBJECT
-public:
-    explicit MaintenanceTileButton(const QString& defaultSvgPath, const QString& hoverSvgPath, const QString& selectedSvgPath, QWidget *parent = nullptr)
-        : QRadioButton(parent)
-        , m_defaultRenderer()
-        , m_hoverRenderer()
-        , m_selectedRenderer()
-        , m_targetRatio(57.0 / 50.0)
-    {
-        setFocusPolicy(Qt::NoFocus);
-        setAttribute(Qt::WA_Hover, true);
-
-        m_defaultRenderer.load(defaultSvgPath);
-        m_hoverRenderer.load(hoverSvgPath);
-        m_selectedRenderer.load(selectedSvgPath);
-
-        setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Expanding);
-    }
-
-    QHBoxLayout * m_actionLayout;
-
-protected:
-    // Completely replaced resizeEvent with paintEvent to handle dynamic scaling cleanly
-    void paintEvent(QPaintEvent *event) override
-    {
-        Q_UNUSED(event);
-
-        QPainter painter(this);
-        painter.setRenderHint(QPainter::Antialiasing);
-
-        const int widgetW = width();
-        const int widgetH = height();
-
-        if (widgetW <= 0 || widgetH <= 0)
-            return;
-
-        int targetW = widgetW;
-        int targetH = static_cast<int>(targetW * m_targetRatio);
-
-        if (targetH > widgetH) 
-        {
-            targetH = widgetH;
-            targetW = static_cast<int>(targetH / m_targetRatio);
-        }
-
-        int targetX = (widgetW - targetW) / 2;
-        int targetY = (widgetH - targetH) / 2;
-        QRect renderRect(targetX, targetY, targetW, targetH);
-
-        bool isSelected = isChecked();
-        bool isHovered = underMouse();
-
-        QSvgRenderer* activeRenderer = &m_defaultRenderer;
-        if (isSelected) 
-        {
-            activeRenderer = &m_selectedRenderer;
-        } 
-        else if (isHovered) 
-        {
-            activeRenderer = &m_hoverRenderer;
-        }
-
-        activeRenderer->render(&painter, renderRect);
-    }
-
-private:
-
-    QSvgRenderer m_defaultRenderer;
-    QSvgRenderer m_hoverRenderer;
-    QSvgRenderer m_selectedRenderer;
-    const qreal m_targetRatio;
-};
-
 
 class DynamicInstallerPage : public PackageManagerPage
 {
@@ -416,6 +344,8 @@ PackageManagerGui::PackageManagerGui(PackageManagerCore *core, QWidget *parent)
     else
         setWindowTitle(tr("Maintain %1").arg(m_core->value(scTitle)));
     setWindowFlags(windowFlags() &~ Qt::WindowContextHelpButtonHint);
+    setWindowFlags(Qt::Window | Qt::FramelessWindowHint);
+    setMouseTracking(true); // CRITICAL: Updates cursors on hover
 
 #ifdef Q_OS_MACOS
     QMenuBar *menuBar = new QMenuBar(this);
@@ -445,6 +375,7 @@ PackageManagerGui::PackageManagerGui(PackageManagerCore *core, QWidget *parent)
 
     // set custom stylesheet
     const QString styleSheetFile = m_core->settings().styleSheet();
+    qInfo() << "### STYLESHEET FILE:" << styleSheetFile;
     if (!styleSheetFile.isEmpty()) {
         QFile sheet(styleSheetFile);
         if (sheet.exists()) {
@@ -479,7 +410,7 @@ PackageManagerGui::PackageManagerGui(PackageManagerCore *core, QWidget *parent)
         m_pageListWidget->setMinimumWidth(200);
 
         QSizePolicy sp = m_pageListWidget->sizePolicy();
-        sp.setRetainSizeWhenHidden(false); 
+        sp.setRetainSizeWhenHidden(false);
         m_pageListWidget->setSizePolicy(sp);
 
         // The widget should be view-only but we do not want it to be grayed out,
@@ -809,14 +740,6 @@ void PackageManagerGui::setWizardPageButtonText(int pageId, int buttonId, const 
         p->setButtonText(static_cast<QWizard::WizardButton>(buttonId), buttonText);
 }
 
-void PackageManagerGui::setButtonVisible(int buttonId, bool visible)
-{
-    if (QAbstractButton *btn = button(static_cast<QWizard::WizardButton>(buttonId)))
-        btn->setVisible(visible);
-    else
-        qCWarning(QInstaller::lcDeveloperBuild) << "Button with type: " << d->buttonType(buttonId) << "not found!";
-}
-
 /*!
     Sets a validator for the custom page specified by \a name and
     \a callbackName requested by \a component.
@@ -876,6 +799,91 @@ void PackageManagerGui::executeControlScript(int pageId)
 {
     if (PackageManagerPage *const p = qobject_cast<PackageManagerPage*> (page(pageId)))
         callControlScriptMethod(p->objectName() + QLatin1String("Callback"));
+}
+
+void PackageManagerGui::mousePressEvent(QMouseEvent *event)
+{
+    if (event->button() == Qt::LeftButton)
+    {
+        QPoint globalPos = GET_GLOBAL_POS(event);
+        updateResizeEdges(globalPos);
+
+        if (m_edgeLeft || m_edgeRight || m_edgeTop || m_edgeBottom)
+        {
+            m_isResizing = true;
+        }
+        else
+        {
+            m_isDragging = true;
+            m_dragPosition = globalPos - frameGeometry().topLeft();
+        }
+        event->accept();
+    }
+}
+
+void PackageManagerGui::mouseMoveEvent(QMouseEvent *event)
+{
+    QPoint globalPos = GET_GLOBAL_POS(event);
+
+    if (m_isDragging)
+    {
+        move(globalPos - m_dragPosition);
+        event->accept();
+    }
+    else if (m_isResizing)
+    {
+        QRect newGeometry = geometry();
+
+        if (m_edgeLeft)   newGeometry.setLeft(globalPos.x());
+        if (m_edgeRight)  newGeometry.setRight(globalPos.x());
+        if (m_edgeTop)    newGeometry.setTop(globalPos.y());
+        if (m_edgeBottom) newGeometry.setBottom(globalPos.y());
+
+        // Respect default structural layout minimum constraints
+        if (newGeometry.width() >= minimumWidth() && newGeometry.height() >= minimumHeight())
+        {
+            setGeometry(newGeometry);
+        }
+
+        event->accept();
+    }
+    else
+    {
+        // Dynamic cursor alteration during basic hovering
+        updateResizeEdges(globalPos);
+    }
+}
+
+void PackageManagerGui::mouseReleaseEvent(QMouseEvent *event)
+{
+    m_isDragging = false;
+    m_isResizing = false;
+    setCursor(Qt::ArrowCursor);
+    event->accept();
+}
+
+void PackageManagerGui::updateResizeEdges(const QPoint &globalPos)
+{
+    if (m_isResizing) return;
+
+    QPoint localPos = mapFromGlobal(globalPos);
+
+    m_edgeLeft   = (localPos.x() >= 0 && localPos.x() <= m_borderPadding);
+    m_edgeRight  = (localPos.x() >= (width() - m_borderPadding) && localPos.x() <= width());
+    m_edgeTop    = (localPos.y() >= 0 && localPos.y() <= m_borderPadding);
+    m_edgeBottom = (localPos.y() >= (height() - m_borderPadding) && localPos.y() <= height());
+
+    // Update cursor layout based on hot zones
+    if ((m_edgeLeft && m_edgeTop) || (m_edgeRight && m_edgeBottom))
+        setCursor(Qt::SizeFDiagCursor);
+    else if ((m_edgeRight && m_edgeTop) || (m_edgeLeft && m_edgeBottom))
+        setCursor(Qt::SizeBDiagCursor);
+    else if (m_edgeLeft || m_edgeRight)
+        setCursor(Qt::SizeHorCursor);
+    else if (m_edgeTop || m_edgeBottom)
+        setCursor(Qt::SizeVerCursor);
+    else
+        setCursor(Qt::ArrowCursor);
 }
 
 /*!
@@ -1627,8 +1635,15 @@ IntroductionPage::IntroductionPage(PackageManagerCore *core)
     , m_updateComponents(nullptr)
     , m_removeAllComponents(nullptr)
     , m_configureSettings(nullptr)
+    , m_loadingGroupMainWidget(nullptr)
+    , m_actionGroupMainWidget(nullptr)
 {
     setObjectName(QLatin1String("IntroductionPage"));
+
+    setSubTitle(QStringLiteral(
+        "<span style='color: #b3b3b3; font-weight: bold; font-size: 16px;'>"
+        "Barco Workstation Apps Manager"
+        "</span>"));
 
     QVBoxLayout *layout = new QVBoxLayout(this);
     if (packageManagerCore()->settings().wizardShowPageList())
@@ -1638,38 +1653,24 @@ IntroductionPage::IntroductionPage(PackageManagerCore *core)
     m_msgLabel = new QLabel(this);
     m_msgLabel->setWordWrap(true);
     m_msgLabel->setObjectName(QLatin1String("MessageLabel"));
-    if (packageManagerCore()->isInstaller()) {
-        setColoredTitle(tr("Welcome"));
+    if (packageManagerCore()->isInstaller())
+    {
         m_msgLabel->setText(tr("Welcome to the %1 Setup.").arg(productName()));
-    } else {
+    }
+    else
+    {
         m_msgLabel->setText(tr("<h1>Select the action you want to perform</h1>"));
     }
 
-    QWidget *widget = new QWidget(this);
-    QVBoxLayout *boxLayout = new QVBoxLayout(widget);
-    widget->setContentsMargins(0,0,40,0);
+    m_loadingGroupMainWidget = new QWidget(this);
+    QVBoxLayout *boxLayout = new QVBoxLayout(m_loadingGroupMainWidget);
+    m_loadingGroupMainWidget->setContentsMargins(0,0,0,0);
     boxLayout->setAlignment(Qt::AlignCenter);
 
-    if (!packageManagerCore()->isInstaller()) {
-        widget->setStyleSheet(QLatin1String(
-            "QRadioButton#PackageManagerRadioButton,"
-            "QRadioButton#UpdaterRadioButton,"
-            "QRadioButton#ConfigureSettingsRadioButton,"
-            "QRadioButton#UninstallerRadioButton,"
-            "QRadioButton#PackageManagerRadioButton::indicator,"
-            "QRadioButton#UpdaterRadioButton::indicator,"
-            "QRadioButton#ConfigureSettingsRadioButton::indicator,"
-            "QRadioButton#UninstallerRadioButton::indicator,"
-            "QRadioButton#PackageManagerRadioButton:hover,"
-            "QRadioButton#PackageManagerRadioButton:checked,"
-            "QRadioButton#UpdaterRadioButton:hover,"
-            "QRadioButton#UpdaterRadioButton:checked,"
-            "QRadioButton#UninstallerRadioButton:hover,"
-            "QRadioButton#UninstallerRadioButton:checked,"
-            "QRadioButton#ConfigureSettingsRadioButton:hover,"
-            "QRadioButton#ConfigureSettingsRadioButton:checked{}"
-        ));
-    }
+    m_actionGroupMainWidget= new QWidget(this);
+    QVBoxLayout *boxLayoutActionGroup = new QVBoxLayout(m_actionGroupMainWidget);
+    m_actionGroupMainWidget->setContentsMargins(0,0,0,0);
+    boxLayoutActionGroup->setAlignment(Qt::AlignCenter);
 
     m_packageManager = new MaintenanceTileButton(QStringLiteral(":/cards/manage_default.svg"),
                                                   QStringLiteral(":/cards/manage_hover.svg"),
@@ -1697,12 +1698,11 @@ IntroductionPage::IntroductionPage(PackageManagerCore *core)
                                                        QStringLiteral(":/cards/uninstall_hover.svg"),
                                                        QStringLiteral(":/cards/uninstall_selected.svg"),this);
     m_removeAllComponents->setObjectName(QLatin1String("UninstallerRadioButton"));
-    connect(m_removeAllComponents, &QAbstractButton::toggled,
-            this, &IntroductionPage::setUninstaller);
-    connect(m_removeAllComponents, &QAbstractButton::toggled,
-            core, &PackageManagerCore::setCompleteUninstallation);
+    connect(m_removeAllComponents, &QAbstractButton::toggled, this, &IntroductionPage::setUninstaller);
+    connect(m_removeAllComponents, &QAbstractButton::toggled, core, &PackageManagerCore::setCompleteUninstallation);
 
-    if (!packageManagerCore()->isInstaller()) 
+    // Add Button Tiles in the maintenancetool introduction page only
+    if (!packageManagerCore()->isInstaller())
     {
         QHBoxLayout *actionsRow = new QHBoxLayout;
         actionsRow->setSpacing(16);
@@ -1714,11 +1714,11 @@ IntroductionPage::IntroductionPage(PackageManagerCore *core)
         maintenanceActionsGroup->addButton(m_updateComponents);
         maintenanceActionsGroup->addButton(m_configureSettings);
         maintenanceActionsGroup->addButton(m_removeAllComponents);
-        actionsRow->addWidget(m_packageManager, 1);
         actionsRow->addWidget(m_updateComponents, 1);
+        actionsRow->addWidget(m_packageManager, 1);
         actionsRow->addWidget(m_configureSettings, 1);
         actionsRow->addWidget(m_removeAllComponents, 1);
-        boxLayout->addLayout(actionsRow, 1);
+        boxLayoutActionGroup->addLayout(actionsRow, 1);
     }
 
     boxLayout->addSpacing(6);
@@ -1743,8 +1743,10 @@ IntroductionPage::IntroductionPage(PackageManagerCore *core)
     boxLayout->addWidget(m_errorLabel);
 
     layout->addWidget(m_msgLabel);
-    widget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
-    layout->addWidget(widget, 0);
+    m_loadingGroupMainWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    m_actionGroupMainWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
+    layout->addWidget(m_loadingGroupMainWidget, 0);
+    layout->addWidget(m_actionGroupMainWidget, 0);
 
     connect(core, &PackageManagerCore::metaJobProgress, this, &IntroductionPage::onProgressChanged);
     connect(core, &PackageManagerCore::metaJobTotalProgress, this, &IntroductionPage::setTotalProgress);
@@ -1803,8 +1805,10 @@ bool IntroductionPage::validatePage()
 
     gui()->setSettingsButtonEnabled(false);
     if (core->isMaintainer()) {
+        m_msgLabel->setVisible(false);
         m_label->setVisible(true);
         m_progressBar->setVisible(true);
+        m_loadingGroupMainWidget->setVisible(true);
         setMaintenanceToolsEnabled(false);
     } else {
         showMetaInfoUpdate();
@@ -1909,8 +1913,14 @@ void IntroductionPage::hideAll()
 void IntroductionPage::showMetaInfoUpdate()
 {
     showWidgets(false);
+    m_packageManager->setVisible(false);
+    m_updateComponents->setVisible(false);
+    m_configureSettings->setVisible(false);
+    m_removeAllComponents->setVisible(false);
     m_label->setVisible(true);
     m_progressBar->setVisible(true);
+    m_msgLabel->setVisible(false);
+    m_loadingGroupMainWidget->setVisible(true);
 }
 
 /*!
@@ -1921,6 +1931,12 @@ void IntroductionPage::showMaintenanceTools()
     showWidgets(true);
     m_label->setVisible(false);
     m_progressBar->setVisible(false);
+    m_msgLabel->setVisible(true);
+    m_packageManager->setVisible(true);
+    m_updateComponents->setVisible(true);
+    m_configureSettings->setVisible(true);
+    m_removeAllComponents->setVisible(true);
+    m_loadingGroupMainWidget->setVisible(false);
 }
 
 /*!
@@ -2114,7 +2130,7 @@ void IntroductionPage::entering()
     showWidgets(false);
     setMessage(QString());
     setErrorMessage(QString());
-    setButtonText(QWizard::CancelButton, tr("&Quit"));
+    setButtonText(QWizard::CancelButton, QStringLiteral("Cancel"));
 
     m_progressBar->setValue(0);
     m_progressBar->setRange(0, 0);
@@ -2880,6 +2896,9 @@ void ReadyForInstallationPage::entering()
 {
     setComplete(false);
 
+    auto commitButton = gui()->button(QWizard::CommitButton);
+    commitButton->setObjectName("qt_wizard_commit_button");
+
     if (packageManagerCore()->isUninstaller()) {
         m_taskDetailsBrowser->setVisible(false);
         setButtonText(QWizard::CommitButton, tr("U&ninstall"));
@@ -2891,6 +2910,11 @@ void ReadyForInstallationPage::entering()
                 QDir::toNativeSeparators(QDir(packageManagerCore()->value(scTargetDir))
             .absolutePath())));
         setComplete(true);
+
+        commitButton->style()->unpolish(commitButton);
+        commitButton->style()->polish(commitButton);
+        commitButton->update();
+
         return;
     } else if (packageManagerCore()->isMaintainer()) {
         setButtonText(QWizard::CommitButton, tr("U&pdate"));
@@ -2903,10 +2927,14 @@ void ReadyForInstallationPage::entering()
     } else {
         Q_ASSERT(packageManagerCore()->isInstaller());
         setButtonText(QWizard::CommitButton, tr("&Install"));
-        setColoredTitle(tr("Selection Overview"));
+        setColoredTitle(tr("Ready to Install"));
         m_msgLabel->setText(tr("All required information is now available to begin installing %1 on your computer.")
             .arg(productName()));
     }
+
+    commitButton->style()->unpolish(commitButton);
+    commitButton->style()->polish(commitButton);
+    commitButton->update();
 
     bool componentsOk = packageManagerCore()->recalculateAllComponents();
     const QString htmlOutput = packageManagerCore()->componentResolveReasons();
@@ -2942,7 +2970,7 @@ void ReadyForInstallationPage::updatePageListTitle()
     if (core->isOfflineGenerator())
         setPageListTitle(tr("Ready to Create Offline Installer"));
     else if (core->isInstaller())
-        setPageListTitle(tr("Selection Overview"));
+        setPageListTitle(tr("Ready to Install"));
     else if (core->isMaintainer())
         setPageListTitle(tr("Ready to Update"));
     else if (core->isUninstaller())
@@ -3055,7 +3083,6 @@ void PerformInstallationPage::entering()
     m_performInstallationForm->enableDetails();
     emit setAutomatedPageSwitchEnabled(true);
 
-    gui()->setButtonVisible(QWizard::BackButton, false);
     changeCurrentImage();
     // No need to start the timer if we only have one, or no images
     if (packageManagerCore()->settings().productImages().count() > 1)
@@ -3067,6 +3094,10 @@ void PerformInstallationPage::entering()
     if (packageManagerCore()->isUninstaller()) {
         setButtonText(QWizard::CommitButton, tr("U&ninstall"));
         setColoredTitle(tr("Uninstalling %1").arg(productName()));
+        gui()->button(QWizard::CommitButton)->setObjectName("qt_wizard_commit_button");
+        gui()->button(QWizard::CommitButton)->style()->unpolish(gui()->button(QWizard::CommitButton));
+        gui()->button(QWizard::CommitButton)->style()->polish(gui()->button(QWizard::CommitButton));
+        gui()->button(QWizard::CommitButton)->update();
 
         QTimer::singleShot(30, packageManagerCore(), SLOT(runUninstaller()));
     } else if (packageManagerCore()->isMaintainer()) {
@@ -3168,7 +3199,6 @@ void PerformInstallationPage::installationFinished()
 
         setComplete(true);
         setButtonText(QWizard::CommitButton, gui()->defaultButtonText(QWizard::NextButton));
-        gui()->setButtonVisible(QWizard::BackButton, false);
     }
 }
 
@@ -3278,8 +3308,6 @@ void FinishedPage::entering()
     if (m_commitButton) {
         disconnect(m_commitButton, &QAbstractButton::clicked, this, &FinishedPage::handleFinishClicked);
         connect(m_commitButton, &QAbstractButton::clicked, this, &FinishedPage::handleFinishClicked);
-        if (QPushButton *const b = qobject_cast<QPushButton *>(m_commitButton))
-            b->setDefault(true);
     }
 
     QString finishedText;
