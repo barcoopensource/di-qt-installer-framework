@@ -3055,6 +3055,7 @@ void PerformInstallationPage::entering()
     m_performInstallationForm->enableDetails();
     emit setAutomatedPageSwitchEnabled(true);
 
+    gui()->setButtonVisible(QWizard::BackButton, false);
     changeCurrentImage();
     // No need to start the timer if we only have one, or no images
     if (packageManagerCore()->settings().productImages().count() > 1)
@@ -3167,6 +3168,7 @@ void PerformInstallationPage::installationFinished()
 
         setComplete(true);
         setButtonText(QWizard::CommitButton, gui()->defaultButtonText(QWizard::NextButton));
+        gui()->setButtonVisible(QWizard::BackButton, false);
     }
 }
 

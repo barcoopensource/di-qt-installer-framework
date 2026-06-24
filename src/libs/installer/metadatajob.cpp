@@ -527,7 +527,6 @@ void MetadataJob::signatureTaskFinished()
         m_signatureResult.append(m_signatureTask.future().results());
         if (!startXMLSignatureTask()) {
             status = SignatureDownloadSuccess;
-            setInfoMessage(tr("signature task finished..."));
             startXMLTask();
         } else {
             return;
@@ -665,7 +664,7 @@ void MetadataJob::xmlTaskFinished()
             if (!m_core->value(scPublicKeySecondary).isEmpty())
                 publicKeyList.append(m_core->value(scPublicKeySecondary).toLatin1());
             QSharedPointer<SignatureVerifier> verifier = SignatureVerifier::createVerifier(SignatureVerifier::SignatureAlgorithm::ECDSA_P256);
-            SignatureVerifier::VerificationResult verifyResult = verifier->verify(xmlPath, signatureFilePath, publicKeyList, true);
+            SignatureVerifier::VerificationResult verifyResult = verifier->verify(result.target(), signatureFilePath, publicKeyList, true);
             switch (verifyResult) {
                 case SignatureVerifier::VerificationResult::Success:
                     break;
@@ -903,7 +902,6 @@ void MetadataJob::metadataSignatureTaskFinished()
         m_metadataSignatureResult.append(m_metadataSignatureTask.future().results());
         if (!fetchMetaDataSignatures()) {
             // All signature batches downloaded, now proceed to fetch package batches
-            setInfoMessage(tr("Retrieving meta information from remote repository..."));
             if (!fetchMetaDataPackages()) {
                 // No packages to fetch either, start cache update
                 startUpdateCacheTask();
