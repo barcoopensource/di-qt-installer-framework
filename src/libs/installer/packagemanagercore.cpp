@@ -2092,7 +2092,7 @@ bool PackageManagerCore::addQBspRepositories(const QStringList &repositories)
         set.insert(repository);
     }
     if (set.count() > 0) {
-        settings().setTemporaryRepositories(set, true);
+        settings().addTemporaryRepositories(set, false);
         return true;
     }
     return false;
@@ -3961,6 +3961,7 @@ QString PackageManagerCore::getHttpProxyHost() const
 void PackageManagerCore::setHttpProxyHost(const QString &hostName)
 {
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
+    proxy.setType(QNetworkProxy::HttpProxy);
     proxy.setHostName(hostName);
     d->m_data.settings().setHttpProxy(proxy);
     qInfo() << "set proxy hostname" << proxy.hostName();
@@ -3977,6 +3978,7 @@ QString PackageManagerCore::getHttpProxyPort() const
 void PackageManagerCore::setHttpProxyPort(const QString &port)
 {
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
+    proxy.setType(QNetworkProxy::HttpProxy);
     bool boolVal;
     proxy.setPort(port.toInt(&boolVal));
     if (boolVal)
@@ -4002,6 +4004,7 @@ QString PackageManagerCore::getHttpProxyUser() const
 void PackageManagerCore::setHttpProxyUser(const QString &userName)
 {
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
+    proxy.setType(QNetworkProxy::HttpProxy);
     proxy.setUser(userName);
     d->m_data.settings().setHttpProxy(proxy);
 }
@@ -4017,6 +4020,7 @@ QString PackageManagerCore::getHttpProxyPwd() const
 void PackageManagerCore::setHttpProxyPwd(const QString &password)
 {
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
+    proxy.setType(QNetworkProxy::HttpProxy);
     proxy.setPassword(password);
     d->m_data.settings().setHttpProxy(proxy);
 }
@@ -5274,6 +5278,7 @@ void PackageManagerCore::healthCheck(const QString& url) const
     stopHealthCheck();
     QNetworkRequest request(QUrl(url + QStringLiteral("/health")));
     request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
+    d->m_nam.setProxyFactory(proxyFactory()->clone());
     d->m_healthCheckReply = d->m_nam.get(request);
     connect(d->m_healthCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onHealthCheckFinished);
 }
@@ -5338,7 +5343,8 @@ void PackageManagerCore::productKeyCheck(const QString& url, const QString& orgi
                                   QByteArrayLiteral("application/json"));
     registrationRequest.setRawHeader(QStringLiteral("authorization").toUtf8(),
                                      authenticationValue);
-
+    
+    d->m_nam.setProxyFactory(proxyFactory()->clone());
     d->m_productKeyCheckReply = d->m_nam.post(registrationRequest, QByteArray());
     connect(d->m_productKeyCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onProductKeyCheckFinished);
 }

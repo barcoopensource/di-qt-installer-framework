@@ -186,33 +186,15 @@ void DownloadArchivesJob::finishedSignatureDownload()
 
 void DownloadArchivesJob::finishedHashDownload()
 {
-    Q_ASSERT(m_downloader != nullptr);
+Q_ASSERT(m_downloader != nullptr);
+
     QFile sha1HashFile(m_downloader->downloadedFileName());
-    QString signatureFileName = m_downloader->downloadedFileName();
-    signatureFileName.chop(5); // remove ".sha1"
-    signatureFileName.append(QStringLiteral(".sig"));
-    if (!QFile::exists(signatureFileName)) {
-        finishWithError(tr("Downloading signature failed."));
-    }
-    QFile signatureFile(signatureFileName);
-    if (!signatureFile.open(QFile::ReadOnly)) {
-        finishWithError(tr("Open signature file failed."));
-    }
     if (sha1HashFile.open(QFile::ReadOnly)) {
         emit hashDownloadReady(m_downloader->downloadedFileName());
         m_currentHash = sha1HashFile.readAll();
         fetchNextArchive();
     } else {
-        finishWithError(tr("Downloading hash signature failed."));
-    }
-    QByteArray signature = signatureFile.readAll();
-    QList<QByteArray> publicKeyList;
-    if (!m_core->value(scPublicKeyPrimary).isEmpty())
-        publicKeyList.append(m_core->value(scPublicKeyPrimary).toLatin1());
-    if (!m_core->value(scPublicKeySecondary).isEmpty())
-        publicKeyList.append(m_core->value(scPublicKeySecondary).toLatin1());
-    if (!SignatureVerifier::verify(m_currentHash, signature, publicKeyList)) {
-        finishWithError(tr("Signature verification failed."));
+        finishWithError(tr("Downloading component hash failed."));
     }
 }
 
@@ -369,6 +351,40 @@ void DownloadArchivesJob::registerFile()
     } else {
         m_retryCount = scMaxRetries;
 
+        QList<QByteArray> publicKeyList;
+        if (!m_core->value(scPublicKeyPrimary).isEmpty())
+            publicKeyList.append(m_core->value(scPublicKeyPrimary).toLatin1());
+        if (!m_core->value(scPublicKeySecondary).isEmpty())
+            publicKeyList.append(m_core->value(scPublicKeySecondary).toLatin1());
+        
+        QSharedPointer<SignatureVerifier> verifier = SignatureVerifier::createVerifier(SignatureVerifier::SignatureAlgorithm::ECDSA_P256);
+        SignatureVerifier::VerificationResult result = verifier->verify(m_downloader->downloadedFileName(), m_downloader->downloadedFileName() + QLatin1String(".sig"), publicKeyList, true);
+        switch (result) {
+            case SignatureVerifier::VerificationResult::Success:
+                break;
+            case SignatureVerifier::VerificationResult::SignatureFileError:
+            {
+                finishWithError(tr("Downloading component signature failed."));
+            }
+                return;
+            case SignatureVerifier::VerificationResult::SignatureVerificationFailed:
+            {
+                finishWithError(tr("Component signature verification failed."));
+            }
+                return;
+            case SignatureVerifier::VerificationResult::CalculateHashError:
+            {
+                finishWithError(tr("Calculating component hash failed."));
+            }
+                return;
+            case SignatureVerifier::VerificationResult::DataFileError:
+            {
+                finishWithError(tr("Downloading component hash failed."));
+            }
+                return;
+            default:
+                break;
+        }
         ++m_archivesDownloaded;
         m_totalSizeDownloaded += QFile(m_downloader->downloadedFileName()).size();
         if (m_progressChangedTimerId) {
