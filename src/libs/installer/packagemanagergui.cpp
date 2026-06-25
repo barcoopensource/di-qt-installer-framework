@@ -740,6 +740,14 @@ void PackageManagerGui::setWizardPageButtonText(int pageId, int buttonId, const 
         p->setButtonText(static_cast<QWizard::WizardButton>(buttonId), buttonText);
 }
 
+void PackageManagerGui::setButtonVisible(int buttonId, bool visible)
+{
+    if (QAbstractButton *btn = button(static_cast<QWizard::WizardButton>(buttonId)))
+        btn->setVisible(visible);
+    else
+        qCWarning(QInstaller::lcDeveloperBuild) << "Button with type: " << d->buttonType(buttonId) << "not found!";
+}
+
 /*!
     Sets a validator for the custom page specified by \a name and
     \a callbackName requested by \a component.
@@ -2927,7 +2935,7 @@ void ReadyForInstallationPage::entering()
     } else {
         Q_ASSERT(packageManagerCore()->isInstaller());
         setButtonText(QWizard::CommitButton, tr("&Install"));
-        setColoredTitle(tr("Ready to Install"));
+        setColoredTitle(tr("Selection Overview"));
         m_msgLabel->setText(tr("All required information is now available to begin installing %1 on your computer.")
             .arg(productName()));
     }
@@ -2970,7 +2978,7 @@ void ReadyForInstallationPage::updatePageListTitle()
     if (core->isOfflineGenerator())
         setPageListTitle(tr("Ready to Create Offline Installer"));
     else if (core->isInstaller())
-        setPageListTitle(tr("Ready to Install"));
+        setPageListTitle(tr("Selection Overview"));
     else if (core->isMaintainer())
         setPageListTitle(tr("Ready to Update"));
     else if (core->isUninstaller())
@@ -3083,6 +3091,7 @@ void PerformInstallationPage::entering()
     m_performInstallationForm->enableDetails();
     emit setAutomatedPageSwitchEnabled(true);
 
+    gui()->setButtonVisible(QWizard::BackButton, false);
     changeCurrentImage();
     // No need to start the timer if we only have one, or no images
     if (packageManagerCore()->settings().productImages().count() > 1)
@@ -3199,6 +3208,7 @@ void PerformInstallationPage::installationFinished()
 
         setComplete(true);
         setButtonText(QWizard::CommitButton, gui()->defaultButtonText(QWizard::NextButton));
+        gui()->setButtonVisible(QWizard::BackButton, false);
     }
 }
 
@@ -3308,6 +3318,8 @@ void FinishedPage::entering()
     if (m_commitButton) {
         disconnect(m_commitButton, &QAbstractButton::clicked, this, &FinishedPage::handleFinishClicked);
         connect(m_commitButton, &QAbstractButton::clicked, this, &FinishedPage::handleFinishClicked);
+        if (QPushButton *const b = qobject_cast<QPushButton *>(m_commitButton))
+            b->setDefault(true);
     }
 
     QString finishedText;
