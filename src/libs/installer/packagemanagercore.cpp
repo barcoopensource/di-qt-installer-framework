@@ -898,9 +898,13 @@ int PackageManagerCore::downloadNeededArchives(double partProgressSize)
     archivesJob.waitForFinished();
 
     if (archivesJob.error() == Job::Canceled)
-        interrupt();
-    else if (archivesJob.error() != Job::NoError)
+    {
+        interruptWithMessage(tr(" Server connection failed. Please check your network, registration and try again."));
         throw Error(archivesJob.errorString());
+    }
+    else if (archivesJob.error() != Job::NoError){
+        throw Error(archivesJob.errorString());
+    }
 
     if (d->statusCanceledOrFailed())
         throw Error(tr("Installation canceled by user."));
@@ -2092,7 +2096,7 @@ bool PackageManagerCore::addQBspRepositories(const QStringList &repositories)
         set.insert(repository);
     }
     if (set.count() > 0) {
-        settings().setTemporaryRepositories(set, true);
+        settings().addTemporaryRepositories(set, false);
         return true;
     }
     return false;
@@ -3961,6 +3965,7 @@ QString PackageManagerCore::getHttpProxyHost() const
 void PackageManagerCore::setHttpProxyHost(const QString &hostName)
 {
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
+    proxy.setType(QNetworkProxy::HttpProxy);
     proxy.setHostName(hostName);
     d->m_data.settings().setHttpProxy(proxy);
     qInfo() << "set proxy hostname" << proxy.hostName();
@@ -3977,6 +3982,7 @@ QString PackageManagerCore::getHttpProxyPort() const
 void PackageManagerCore::setHttpProxyPort(const QString &port)
 {
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
+    proxy.setType(QNetworkProxy::HttpProxy);
     bool boolVal;
     proxy.setPort(port.toInt(&boolVal));
     if (boolVal)
@@ -4002,6 +4008,7 @@ QString PackageManagerCore::getHttpProxyUser() const
 void PackageManagerCore::setHttpProxyUser(const QString &userName)
 {
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
+    proxy.setType(QNetworkProxy::HttpProxy);
     proxy.setUser(userName);
     d->m_data.settings().setHttpProxy(proxy);
 }
@@ -4017,6 +4024,7 @@ QString PackageManagerCore::getHttpProxyPwd() const
 void PackageManagerCore::setHttpProxyPwd(const QString &password)
 {
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
+    proxy.setType(QNetworkProxy::HttpProxy);
     proxy.setPassword(password);
     d->m_data.settings().setHttpProxy(proxy);
 }
@@ -4238,6 +4246,20 @@ void PackageManagerCore::setCanceled()
         cancelMetaInfoJob();
     d->setStatus(PackageManagerCore::Canceled);
 }
+
+void PackageManagerCore::interruptWithMessage(const QString &str)
+{
+    setCanceledWithMessage(str);
+    emit installationInterrupted();
+}
+
+void PackageManagerCore::setCanceledWithMessage(const QString &str)
+{
+    if (!d->m_repoFetched)
+        cancelMetaInfoJob();
+    d->setStatus(PackageManagerCore::Canceled, str);
+}
+
 
 /*!
     Replaces all variables within \a str by their respective values and returns the result.
@@ -5274,6 +5296,7 @@ void PackageManagerCore::healthCheck(const QString& url) const
     stopHealthCheck();
     QNetworkRequest request(QUrl(url + QStringLiteral("/health")));
     request.setAttribute(QNetworkRequest::Http2AllowedAttribute, false);
+    d->m_nam.setProxyFactory(proxyFactory()->clone());
     d->m_healthCheckReply = d->m_nam.get(request);
     connect(d->m_healthCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onHealthCheckFinished);
 }
@@ -5338,7 +5361,8 @@ void PackageManagerCore::productKeyCheck(const QString& url, const QString& orgi
                                   QByteArrayLiteral("application/json"));
     registrationRequest.setRawHeader(QStringLiteral("authorization").toUtf8(),
                                      authenticationValue);
-
+    
+    d->m_nam.setProxyFactory(proxyFactory()->clone());
     d->m_productKeyCheckReply = d->m_nam.post(registrationRequest, QByteArray());
     connect(d->m_productKeyCheckReply, &QNetworkReply::finished, this, &PackageManagerCore::onProductKeyCheckFinished);
 }

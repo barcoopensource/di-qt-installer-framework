@@ -56,6 +56,7 @@
 #include <QLineEdit>
 #include <QStandardItemModel>
 #include <QStyledItemDelegate>
+#include <QStyle>
 
 namespace QInstaller {
 
@@ -296,6 +297,7 @@ void ComponentSelectionPagePrivate::updateTreeView()
     m_proxyModel->setSourceModel(m_currentModel);
     m_treeView->setModel(m_proxyModel);
     expandDefault();
+    m_treeView->header()->setStretchLastSection(false);
 
     const bool installActionColumnVisible = m_core->settings().installActionColumnVisible();
     if (!installActionColumnVisible)
@@ -308,28 +310,49 @@ void ComponentSelectionPagePrivate::updateTreeView()
 
     m_treeView->header()->setSectionResizeMode(
                 ComponentModelHelper::NameColumn, QHeaderView::ResizeToContents);
+
+    m_treeView->resizeColumnToContents(ComponentModelHelper::UncompressedSizeColumn);
+    m_treeView->resizeColumnToContents(ComponentModelHelper::ReleaseDateColumn);
+    QStyle *headerStyle = m_treeView->header()->style();
+    const int headerMargin = headerStyle->pixelMetric(
+        QStyle::PM_HeaderMargin, nullptr, m_treeView->header());
+    const int focusMargin = headerStyle->pixelMetric(
+        QStyle::PM_FocusFrameHMargin, nullptr, m_treeView->header());
+    const int frameWidth = headerStyle->pixelMetric(
+        QStyle::PM_DefaultFrameWidth, nullptr, m_treeView->header());
+    const int gripMargin = headerStyle->pixelMetric(
+        QStyle::PM_HeaderGripMargin, nullptr, m_treeView->header());
+
+    int dynamicPadding = qMax(0, headerMargin) * 2
+        + qMax(0, focusMargin) * 2
+        + qMax(0, frameWidth) * 2
+        + qMax(0, gripMargin);
+    int sizeMinW = m_treeView->header()->sectionSize(ComponentModelHelper::UncompressedSizeColumn) + dynamicPadding;
+    int minReleaseDateColumn = m_treeView->header()->sectionSize(ComponentModelHelper::ReleaseDateColumn) + dynamicPadding;
+
     if (m_core->isInstaller()) {
         m_treeView->setHeaderHidden(true);
         for (int i = ComponentModelHelper::InstalledVersionColumn; i < m_currentModel->columnCount(); ++i)
             m_treeView->hideColumn(i);
+        m_treeView->header()->setSectionResizeMode(
+                    ComponentModelHelper::NameColumn, QHeaderView::Stretch);
 
         if (installActionColumnVisible) {
-            m_treeView->header()->setStretchLastSection(false);
-            m_treeView->header()->setSectionResizeMode(
-                        ComponentModelHelper::NameColumn, QHeaderView::Stretch);
             m_treeView->header()->setSectionResizeMode(
                         ComponentModelHelper::ActionColumn, QHeaderView::ResizeToContents);
         }
     } else {
-        m_treeView->header()->setStretchLastSection(true);
+        m_treeView->header()->setSectionResizeMode(
+                    ComponentModelHelper::NameColumn, QHeaderView::Stretch);
         if (installActionColumnVisible) {
-            m_treeView->header()->setSectionResizeMode(
-                        ComponentModelHelper::NameColumn, QHeaderView::Interactive);
             m_treeView->header()->setSectionResizeMode(
                         ComponentModelHelper::ActionColumn, QHeaderView::Interactive);
         }
-        for (int i = 0; i < m_currentModel->columnCount(); ++i)
+        for (int i = 0; i < m_currentModel->columnCount(); ++i) {
+            if (i == ComponentModelHelper::NameColumn)
+                continue;
             m_treeView->resizeColumnToContents(i);
+        }
     }
 
     bool hasChildren = false;
@@ -342,6 +365,18 @@ void ComponentSelectionPagePrivate::updateTreeView()
         this, &ComponentSelectionPagePrivate::currentSelectedChanged);
 
     m_treeView->setCurrentIndex(m_proxyModel->index(0, 0));
+    if (!m_treeView->isColumnHidden(ComponentModelHelper::ReleaseDateColumn))
+    {
+        int currentSize = m_treeView->header()->sectionSize(ComponentModelHelper::ReleaseDateColumn);
+        if (currentSize < minReleaseDateColumn)
+            m_treeView->header()->resizeSection(ComponentModelHelper::ReleaseDateColumn, minReleaseDateColumn);
+    }
+    if (!m_treeView->isColumnHidden(ComponentModelHelper::UncompressedSizeColumn))
+    {
+        int currentSize = m_treeView->header()->sectionSize(ComponentModelHelper::UncompressedSizeColumn);
+        if (currentSize < sizeMinW)
+            m_treeView->header()->resizeSection(ComponentModelHelper::UncompressedSizeColumn, sizeMinW);
+    }
 }
 
 /*!
@@ -534,6 +569,9 @@ void ComponentSelectionPagePrivate::onModelStateChanged(QInstaller::ComponentMod
     // update the current selected node (important to reflect possible sub-node changes)
     if (m_treeView->selectionModel())
         currentSelectedChanged(m_treeView->selectionModel()->currentIndex());
+
+    if (state.testFlag(ComponentModel::Empty) == false)
+        m_treeView->resizeColumnToContents(ComponentModelHelper::UncompressedSizeColumn);
 }
 
 /*!

@@ -35,6 +35,7 @@ QT += \
     qml \
     network \
     xml \
+    svg \
     concurrent \
     widgets \
     core-private \
@@ -56,6 +57,7 @@ HEADERS += packagemanagercore.h \
     metadatacache.h \
     packagemanagercore_p.h \
     packagemanagergui.h \
+    maintenancetilebutton.h \
     binaryformat.h \
     binaryformatengine.h \
     binaryformatenginehandler.h \
@@ -153,7 +155,9 @@ HEADERS += packagemanagercore.h \
     categorycombobox.h \
     horizontalruler.h \
     spacewidget.h   \
-    signatureverifier.h
+    signatureverifier.h \
+	ed25519signatureverifier.h \
+    ecdsap256signatureverifier.h
 
 SOURCES += packagemanagercore.cpp \
     abstractarchive.cpp \
@@ -172,6 +176,7 @@ SOURCES += packagemanagercore.cpp \
     operationtracer.cpp \
     packagemanagercore_p.cpp \
     packagemanagergui.cpp \
+    maintenancetilebutton.cpp \
     binaryformat.cpp \
     binaryformatengine.cpp \
     binaryformatenginehandler.cpp \
@@ -249,7 +254,9 @@ SOURCES += packagemanagercore.cpp \
     categorycombobox.cpp \
     horizontalruler.cpp \
     spacewidget.cpp \
-    signatureverifier.cpp
+    signatureverifier.cpp \
+	ed25519signatureverifier.cpp \
+    ecdsap256signatureverifier.cpp
 
 macos:SOURCES += fileutils_mac.mm
 
