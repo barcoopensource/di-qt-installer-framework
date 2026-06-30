@@ -1975,8 +1975,8 @@ IntroductionPage::IntroductionPage(PackageManagerCore *core)
         maintenanceActionsGroup->addButton(m_updateComponents);
         maintenanceActionsGroup->addButton(m_configureSettings);
         maintenanceActionsGroup->addButton(m_removeAllComponents);
-        actionsRow->addWidget(m_updateComponents, 1);
         actionsRow->addWidget(m_packageManager, 1);
+        actionsRow->addWidget(m_updateComponents, 1);
         actionsRow->addWidget(m_configureSettings, 1);
         actionsRow->addWidget(m_removeAllComponents, 1);
         boxLayoutActionGroup->addLayout(actionsRow, 1);
