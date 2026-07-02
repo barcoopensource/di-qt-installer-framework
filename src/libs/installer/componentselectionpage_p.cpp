@@ -303,10 +303,7 @@ void ComponentSelectionPagePrivate::updateTreeView()
     if (!installActionColumnVisible)
         m_treeView->hideColumn(ComponentModelHelper::ActionColumn);
 
-    if (m_core->isPackageManager())
-    {
-        m_treeView->hideColumn(ComponentModelHelper::InstalledVersionColumn);
-    }
+    m_treeView->hideColumn(ComponentModelHelper::InstalledVersionColumn);
 
     m_treeView->header()->setSectionResizeMode(
                 ComponentModelHelper::NameColumn, QHeaderView::ResizeToContents);
@@ -330,29 +327,16 @@ void ComponentSelectionPagePrivate::updateTreeView()
     int sizeMinW = m_treeView->header()->sectionSize(ComponentModelHelper::UncompressedSizeColumn) + dynamicPadding;
     int minReleaseDateColumn = m_treeView->header()->sectionSize(ComponentModelHelper::ReleaseDateColumn) + dynamicPadding;
 
-    if (m_core->isInstaller()) {
-        m_treeView->setHeaderHidden(true);
-        for (int i = ComponentModelHelper::InstalledVersionColumn; i < m_currentModel->columnCount(); ++i)
-            m_treeView->hideColumn(i);
+    m_treeView->header()->setSectionResizeMode(
+                ComponentModelHelper::NameColumn, QHeaderView::Stretch);
+    if (installActionColumnVisible) {
         m_treeView->header()->setSectionResizeMode(
-                    ComponentModelHelper::NameColumn, QHeaderView::Stretch);
-
-        if (installActionColumnVisible) {
-            m_treeView->header()->setSectionResizeMode(
-                        ComponentModelHelper::ActionColumn, QHeaderView::ResizeToContents);
-        }
-    } else {
-        m_treeView->header()->setSectionResizeMode(
-                    ComponentModelHelper::NameColumn, QHeaderView::Stretch);
-        if (installActionColumnVisible) {
-            m_treeView->header()->setSectionResizeMode(
-                        ComponentModelHelper::ActionColumn, QHeaderView::Interactive);
-        }
-        for (int i = 0; i < m_currentModel->columnCount(); ++i) {
-            if (i == ComponentModelHelper::NameColumn)
-                continue;
-            m_treeView->resizeColumnToContents(i);
-        }
+                    ComponentModelHelper::ActionColumn, QHeaderView::Interactive);
+    }
+    for (int i = 0; i < m_currentModel->columnCount(); ++i) {
+        if (i == ComponentModelHelper::NameColumn)
+            continue;
+        m_treeView->resizeColumnToContents(i);
     }
 
     bool hasChildren = false;
