@@ -1986,7 +1986,6 @@ IntroductionPage::IntroductionPage(PackageManagerCore *core)
     m_errorLabel->setObjectName(QLatin1String("ErrorLabel"));
     m_errorLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
     m_errorLabel->hide();
-    m_errorLabel->raise();
 
     layout->addWidget(m_msgLabel);
     m_loadingGroupMainWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -2124,24 +2123,7 @@ bool IntroductionPage::validatePage()
         }
 
         if (m_allPackagesFetched) {
-            if (core->isPackageManager()) {
-                bool hasUpdatableComponent = false;
-                const QList<Component *> rootComponents =
-                    core->components(QInstaller::PackageManagerCore::ComponentType::Root);
-                foreach (Component *component, rootComponents) {
-                    if (component && component->isUpdateAvailable()) {
-                        hasUpdatableComponent = true;
-                        break;
-                    }
-                }
-
-                if (!hasUpdatableComponent)
-                    setErrorMessage(QString::fromLatin1("<b>%1</b>").arg(tr("No updates available.")));
-                else
-                    setComplete(true);
-            } else {
-                setComplete(true);
-            }
+            setComplete(true);
         }
     }
 
@@ -2208,7 +2190,6 @@ void IntroductionPage::showMaintenanceTools()
     m_updateComponents->setVisible(true);
     m_configureSettings->setVisible(true);
     m_removeAllComponents->setVisible(true);
-    // Error label is absolutely positioned; keep loading area hidden to avoid layout shifts.
     m_loadingGroupMainWidget->setVisible(false);
     m_actionGroupMainWidget->setVisible(true);
 }
