@@ -546,15 +546,15 @@ void PackageManagerGui::bringToFront()
 
     if (hWndForeground && hWndForeground != hWndThis)
     {
-        DWORD thisPid = GetWindowThreadProcessId(hWndThis, nullptr);
-        DWORD fgPid = GetWindowThreadProcessId(hWndForeground, nullptr);
+        DWORD thisTid = GetWindowThreadProcessId(hWndThis, nullptr);
+        DWORD fgTid = GetWindowThreadProcessId(hWndForeground, nullptr);
 
-        AttachThreadInput(thisPid, fgPid, TRUE);
+        AttachThreadInput(thisTid, fgTid, TRUE);
 
         SetWindowPos(hWndThis, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
         SetForegroundWindow(hWndThis);
 
-        AttachThreadInput(thisPid, fgPid, FALSE);
+        AttachThreadInput(thisTid, fgTid, FALSE);
     }
 #endif
     raise();
