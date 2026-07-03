@@ -195,10 +195,11 @@ void ProgressCoordinator::partProgressChanged(double fraction)
         }
 
         // In normal mode, the progress has to go forward, new has to be larger than current
-        if (qRound(m_currentCompletePercentage) > qRound(newCurrentCompletePercentage))
+        if (qRound(m_currentCompletePercentage) > qRound(newCurrentCompletePercentage)){
             qCWarning(QInstaller::lcInstallerInstallLog) << "Something is wrong with the calculation of the progress.";
-
-        m_currentCompletePercentage = newCurrentCompletePercentage;
+        }else {
+            m_currentCompletePercentage = newCurrentCompletePercentage;
+        }
 
         if (fraction == 1) {
             m_currentBasePercentage = m_currentBasePercentage + pendingCalculatedPartPercentage;
