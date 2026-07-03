@@ -535,6 +535,30 @@ PackageManagerGui::PackageManagerGui(PackageManagerCore *core, QWidget *parent)
     // We need to create this ugly hack so that the installer doesn't exceed the maximum size of the
     // screen. The screen size where the widget lies is not available until the widget is visible.
     QTimer::singleShot(30, this, SLOT(setMaxSize()));
+    QTimer::singleShot(20, this, SLOT(bringToFront()));
+}
+
+void PackageManagerGui::bringToFront()
+{
+#ifdef Q_OS_WIN
+    HWND hWndThis = reinterpret_cast<HWND>(winId());
+    HWND hWndForeground = GetForegroundWindow();
+
+    if (hWndForeground && hWndForeground != hWndThis)
+    {
+        DWORD thisTid = GetWindowThreadProcessId(hWndThis, nullptr);
+        DWORD fgTid = GetWindowThreadProcessId(hWndForeground, nullptr);
+
+        AttachThreadInput(thisTid, fgTid, TRUE);
+
+        SetWindowPos(hWndThis, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+        SetForegroundWindow(hWndThis);
+
+        AttachThreadInput(thisTid, fgTid, FALSE);
+    }
+#endif
+    raise();
+    activateWindow();
 }
 
 /*!
