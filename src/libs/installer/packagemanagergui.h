@@ -119,6 +119,7 @@ public Q_SLOTS:
     void showFinishedPage();
     void setModified(bool value);
     void setMaxSize();
+    void bringToFront();
     void updatePageListWidget();
     void onScreenGeometryChanged(const QRect&);
     void onScreenLogicalDpiChanged(qreal dpi);
