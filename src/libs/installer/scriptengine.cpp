@@ -201,6 +201,12 @@ void GuiProxy::setButtonVisible(int wizardButton, bool visible)
         m_gui->setButtonVisible(wizardButton, visible);
 }
 
+void GuiProxy::updateButtonStyle(int wizardButton)
+{
+    if (m_gui)
+        m_gui->updateButtonStyle(wizardButton);
+}
+
 void GuiProxy::showSettingsButton(bool show)
 {
     if (m_gui)
