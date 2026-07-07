@@ -32,7 +32,7 @@
 
 #include <QDebug>
 #include <QApplication>
-#include <QMessageBox>
+#include "framelessmsgbox.h"
 #include <QProcess>
 
 #include <unistd.h>
@@ -52,7 +52,7 @@ namespace QInstaller {
 static void printError(QWidget *parent, const QString &value)
 {
     if (qobject_cast<QApplication*> (qApp) != 0) {
-        QMessageBox::critical(parent, QObject::tr( "Error acquiring admin rights" ), value,
+        FramelessMsgBox::critical(parent, QObject::tr( "Error acquiring admin rights" ), value,
             QMessageBox::Ok, QMessageBox::Ok);
     } else {
         std::cout << value.toStdString() << std::endl;

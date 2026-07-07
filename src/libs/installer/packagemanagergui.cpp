@@ -1371,20 +1371,25 @@ void PackageManagerGui::cancelButtonClicked()
         && m_core->status() != PackageManagerCore::Canceled
         && m_core->status() != PackageManagerCore::Failure) {
             interrupt = true;
-            question = tr("Do you want to cancel the installation process?");
+            question = tr("Do you want to cancel the installer process?");
             if (m_core->isUninstaller())
-                question = tr("Do you want to cancel the removal process?");
+                question = tr("Do you want to cancel the uninstaller process?");
     } else {
-        question = tr("Do you want to quit the installer application?");
+        question = tr("Do you want to quit barco workstation apps installer?");
         if (m_core->isUninstaller())
-            question = tr("Do you want to quit the uninstaller application?");
+            question = tr("Do you want to quit barco workstation apps uninstaller?");
         if (m_core->isMaintainer())
-            question = tr("Do you want to quit the maintenance application?");
+            question = tr("Do you want to quit barco workstation apps manager?");
     }
 
+    QString title = tr("Cancel Installation");
+    if (m_core->isUninstaller())
+        title = tr("Cancel Uninstaller");
+    if (m_core->isMaintainer())
+        title = tr("Cancel Manager");
     const QMessageBox::StandardButton button =
         MessageBoxHandler::question(MessageBoxHandler::currentBestSuitParent(),
-        QLatin1String("cancelInstallation"), tr("%1 Question").arg(m_core->value(scTitle)), question,
+        QLatin1String("cancelInstallation"), title, question,
         QMessageBox::Yes | QMessageBox::No);
 
     if (button == QMessageBox::Yes) {

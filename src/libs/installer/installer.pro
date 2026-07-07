@@ -157,7 +157,8 @@ HEADERS += packagemanagercore.h \
     spacewidget.h   \
     signatureverifier.h \
 	ed25519signatureverifier.h \
-    ecdsap256signatureverifier.h
+    ecdsap256signatureverifier.h \
+    framelessmsgbox.h
 
 SOURCES += packagemanagercore.cpp \
     abstractarchive.cpp \
@@ -256,7 +257,8 @@ SOURCES += packagemanagercore.cpp \
     spacewidget.cpp \
     signatureverifier.cpp \
 	ed25519signatureverifier.cpp \
-    ecdsap256signatureverifier.cpp
+    ecdsap256signatureverifier.cpp \
+    framelessmsgbox.cpp
 
 macos:SOURCES += fileutils_mac.mm
 
