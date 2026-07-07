@@ -32,7 +32,7 @@
 #include <installer_global.h>
 
 #include <QHash>
-#include <QMessageBox>
+#include "framelessmsgbox.h"
 #include <QObject>
 
 namespace QInstaller {
