@@ -2117,8 +2117,7 @@ bool IntroductionPage::validatePage()
                 QString error = core->error();
                 if (core->status() == PackageManagerCore::ForceUpdate) {
                     // replaces the error string from packagemanagercore
-                    error = tr("There is an important update available. Please select '%1' first")
-                        .arg(m_updateComponents->text().remove(QLatin1Char('&')));
+                    error = tr("There is an important update available. Please select 'Update Apps' first");
 
                     m_forceUpdate = true;
                     // Don't call these directly. Need to finish the current validation first,
