@@ -326,6 +326,7 @@ void ComponentSelectionPagePrivate::updateTreeView()
         + qMax(0, gripMargin);
     int sizeMinW = m_treeView->header()->sectionSize(ComponentModelHelper::UncompressedSizeColumn) + dynamicPadding;
     int minReleaseDateColumn = m_treeView->header()->sectionSize(ComponentModelHelper::ReleaseDateColumn) + dynamicPadding;
+    int minNewVersionColumn = m_treeView->header()->sectionSize(ComponentModelHelper::NewVersionColumn) + dynamicPadding;
 
     m_treeView->header()->setSectionResizeMode(
                 ComponentModelHelper::NameColumn, QHeaderView::Stretch);
@@ -349,6 +350,7 @@ void ComponentSelectionPagePrivate::updateTreeView()
         this, &ComponentSelectionPagePrivate::currentSelectedChanged);
 
     m_treeView->setCurrentIndex(m_proxyModel->index(0, 0));
+    
     if (!m_treeView->isColumnHidden(ComponentModelHelper::ReleaseDateColumn))
     {
         int currentSize = m_treeView->header()->sectionSize(ComponentModelHelper::ReleaseDateColumn);
@@ -360,6 +362,13 @@ void ComponentSelectionPagePrivate::updateTreeView()
         int currentSize = m_treeView->header()->sectionSize(ComponentModelHelper::UncompressedSizeColumn);
         if (currentSize < sizeMinW)
             m_treeView->header()->resizeSection(ComponentModelHelper::UncompressedSizeColumn, sizeMinW);
+    }
+
+    if (!m_treeView->isColumnHidden(ComponentModelHelper::NewVersionColumn))
+    {
+        int currentSize = m_treeView->header()->sectionSize(ComponentModelHelper::NewVersionColumn);
+        if (currentSize < minNewVersionColumn)
+            m_treeView->header()->resizeSection(ComponentModelHelper::NewVersionColumn, minNewVersionColumn);
     }
 }
 
