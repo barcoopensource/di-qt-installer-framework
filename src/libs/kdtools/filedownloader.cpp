@@ -52,6 +52,7 @@
 #include <QLoggingCategory>
 #include <globals.h>
 #include <QHostInfo>
+#include "framelessmsgbox.h"
 
 using namespace KDUpdater;
 using namespace QInstaller;
@@ -1642,7 +1643,7 @@ void KDUpdater::HttpDownloader::onSslErrors(QNetworkReply* reply, const QList<QS
     // TODO: Remove above code once we have a proper implementation for message box handler supporting
     // methods used in the following code, right now we return here cause the message box is not scriptable.
 
-    QMessageBox msgBox(MessageBoxHandler::currentBestSuitParent());
+    FramelessMsgBox msgBox(MessageBoxHandler::currentBestSuitParent());
     msgBox.setDetailedText(errorString);
     msgBox.setIcon(QMessageBox::Warning);
     msgBox.setWindowModality(Qt::WindowModal);

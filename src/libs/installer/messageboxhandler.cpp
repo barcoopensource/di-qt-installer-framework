@@ -367,7 +367,7 @@ static QMessageBox::StandardButton showNewMessageBox(QWidget *parent, QMessageBo
     const QString &title, const QString &text, QMessageBox::StandardButtons buttons,
     QMessageBox::StandardButton defaultButton)
 {
-    QMessageBox msgBox(icon, title, text, QMessageBox::NoButton, parent);
+    FramelessMsgBox msgBox(icon, title, text, QMessageBox::NoButton, parent);
     msgBox.setTextInteractionFlags(Qt::TextBrowserInteraction);
     msgBox.setTextFormat(Qt::RichText);
 

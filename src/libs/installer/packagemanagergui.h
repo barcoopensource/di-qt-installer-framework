@@ -87,6 +87,7 @@ public:
     bool isButtonEnabled(int wizardButton);
     void setWizardPageButtonText(int pageId, int buttonId, const QString &buttonText);
     void setButtonVisible(int wizardButton, bool visible);
+    void updateButtonStyle(int buttonId);
 
     void showSettingsButton(bool show);
     void requestSettingsButtonByInstaller(bool request);
@@ -119,6 +120,7 @@ public Q_SLOTS:
     void showFinishedPage();
     void setModified(bool value);
     void setMaxSize();
+    void bringToFront();
     void updatePageListWidget();
     void onScreenGeometryChanged(const QRect&);
     void onScreenLogicalDpiChanged(qreal dpi);
@@ -295,11 +297,13 @@ private Q_SLOTS:
 
 private:
     void initializePage() override;
+    void resizeEvent(QResizeEvent *event) override;
 
     void entering() override;
     void leaving() override;
 
     void showWidgets(bool show);
+    void updateErrorLabelPosition();
 
 private:
     bool m_updatesFetched;

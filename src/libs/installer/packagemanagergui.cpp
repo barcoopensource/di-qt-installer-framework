@@ -535,6 +535,30 @@ PackageManagerGui::PackageManagerGui(PackageManagerCore *core, QWidget *parent)
     // We need to create this ugly hack so that the installer doesn't exceed the maximum size of the
     // screen. The screen size where the widget lies is not available until the widget is visible.
     QTimer::singleShot(30, this, SLOT(setMaxSize()));
+    QTimer::singleShot(20, this, SLOT(bringToFront()));
+}
+
+void PackageManagerGui::bringToFront()
+{
+#ifdef Q_OS_WIN
+    HWND hWndThis = reinterpret_cast<HWND>(winId());
+    HWND hWndForeground = GetForegroundWindow();
+
+    if (hWndForeground && hWndForeground != hWndThis)
+    {
+        DWORD thisTid = GetWindowThreadProcessId(hWndThis, nullptr);
+        DWORD fgTid = GetWindowThreadProcessId(hWndForeground, nullptr);
+
+        AttachThreadInput(thisTid, fgTid, TRUE);
+
+        SetWindowPos(hWndThis, HWND_TOP, 0, 0, 0, 0, SWP_NOMOVE | SWP_NOSIZE);
+        SetForegroundWindow(hWndThis);
+
+        AttachThreadInput(thisTid, fgTid, FALSE);
+    }
+#endif
+    raise();
+    activateWindow();
 }
 
 /*!
@@ -853,6 +877,17 @@ void PackageManagerGui::setButtonVisible(int buttonId, bool visible)
         btn->setVisible(visible);
     else
         qCWarning(QInstaller::lcDeveloperBuild) << "Button with type: " << d->buttonType(buttonId) << "not found!";
+}
+
+void PackageManagerGui::updateButtonStyle(int buttonId)
+{
+    if (QAbstractButton *btn = button(static_cast<QWizard::WizardButton>(buttonId))){
+        btn->style()->unpolish(btn);
+        btn->style()->polish(btn);
+        btn->update();
+    } else {
+        qCWarning(QInstaller::lcDeveloperBuild) << "Button with type: " << d->buttonType(buttonId) << "not found!";
+    }
 }
 
 /*!
@@ -1336,20 +1371,25 @@ void PackageManagerGui::cancelButtonClicked()
         && m_core->status() != PackageManagerCore::Canceled
         && m_core->status() != PackageManagerCore::Failure) {
             interrupt = true;
-            question = tr("Do you want to cancel the installation process?");
+            question = tr("Do you want to cancel the installer process?");
             if (m_core->isUninstaller())
-                question = tr("Do you want to cancel the removal process?");
+                question = tr("Do you want to cancel the uninstaller process?");
     } else {
-        question = tr("Do you want to quit the installer application?");
+        question = tr("Do you want to quit barco workstation apps installer?");
         if (m_core->isUninstaller())
-            question = tr("Do you want to quit the uninstaller application?");
+            question = tr("Do you want to quit barco workstation apps uninstaller?");
         if (m_core->isMaintainer())
-            question = tr("Do you want to quit the maintenance application?");
+            question = tr("Do you want to quit barco workstation apps manager?");
     }
 
+    QString title = tr("Cancel Installation");
+    if (m_core->isUninstaller())
+        title = tr("Cancel Uninstaller");
+    if (m_core->isMaintainer())
+        title = tr("Cancel Manager");
     const QMessageBox::StandardButton button =
         MessageBoxHandler::question(MessageBoxHandler::currentBestSuitParent(),
-        QLatin1String("cancelInstallation"), tr("%1 Question").arg(m_core->value(scTitle)), question,
+        QLatin1String("cancelInstallation"), title, question,
         QMessageBox::Yes | QMessageBox::No);
 
     if (button == QMessageBox::Yes) {
@@ -1935,8 +1975,8 @@ IntroductionPage::IntroductionPage(PackageManagerCore *core)
         maintenanceActionsGroup->addButton(m_updateComponents);
         maintenanceActionsGroup->addButton(m_configureSettings);
         maintenanceActionsGroup->addButton(m_removeAllComponents);
-        actionsRow->addWidget(m_updateComponents, 1);
         actionsRow->addWidget(m_packageManager, 1);
+        actionsRow->addWidget(m_updateComponents, 1);
         actionsRow->addWidget(m_configureSettings, 1);
         actionsRow->addWidget(m_removeAllComponents, 1);
         boxLayoutActionGroup->addLayout(actionsRow, 1);
@@ -1961,7 +2001,7 @@ IntroductionPage::IntroductionPage(PackageManagerCore *core)
     m_errorLabel->setTextInteractionFlags(Qt::TextBrowserInteraction);
     m_errorLabel->setObjectName(QLatin1String("ErrorLabel"));
     m_errorLabel->setSizePolicy(QSizePolicy::Preferred, QSizePolicy::Minimum);
-    boxLayout->addWidget(m_errorLabel);
+    m_errorLabel->hide();
 
     layout->addWidget(m_msgLabel);
     m_loadingGroupMainWidget->setSizePolicy(QSizePolicy::Expanding, QSizePolicy::Minimum);
@@ -1976,6 +2016,7 @@ IntroductionPage::IntroductionPage(PackageManagerCore *core)
             this, &IntroductionPage::onCoreNetworkSettingsChanged);
 
     m_updateComponents->setEnabled(!m_offlineMaintenanceTool && ProductKeyCheck::instance()->hasValidKey());
+    updateErrorLabelPosition();
 
 #ifdef Q_OS_WIN
 #if QT_VERSION < QT_VERSION_CHECK(6, 0, 0)
@@ -2055,8 +2096,13 @@ bool IntroductionPage::validatePage()
     if (core->isUpdater()) {
         if (!m_updatesFetched) {
             m_updatesFetched = core->fetchRemotePackagesTree();
-            if (!m_updatesFetched)
-                setErrorMessage(core->error());
+            if (!m_updatesFetched) {
+                const QString fetchError = core->error();
+                if (!fetchError.isEmpty())
+                    setErrorMessage(fetchError);
+                else
+                    setErrorMessage(QString::fromLatin1("<b>%1</b>").arg(tr("No updates available.")));
+            }
         }
 
         if (m_updatesFetched) {
@@ -2076,8 +2122,7 @@ bool IntroductionPage::validatePage()
                 QString error = core->error();
                 if (core->status() == PackageManagerCore::ForceUpdate) {
                     // replaces the error string from packagemanagercore
-                    error = tr("There is an important update available. Please select '%1' first")
-                        .arg(m_updateComponents->text().remove(QLatin1Char('&')));
+                    error = tr("There is an important update available. Please select 'Update Apps' first");
 
                     m_forceUpdate = true;
                     // Don't call these directly. Need to finish the current validation first,
@@ -2092,8 +2137,9 @@ bool IntroductionPage::validatePage()
             }
         }
 
-        if (m_allPackagesFetched)
+        if (m_allPackagesFetched) {
             setComplete(true);
+        }
     }
 
     if (core->isMaintainer()) {
@@ -2245,6 +2291,8 @@ void IntroductionPage::setErrorMessage(const QString &error)
     {
         m_errorLabel->setText(error);
         m_errorLabel->setPalette(palette);
+        m_errorLabel->setVisible(!error.isEmpty());
+        updateErrorLabelPosition();
     }
 
 
@@ -2256,6 +2304,32 @@ void IntroductionPage::setErrorMessage(const QString &error)
     }
 #endif
 #endif
+}
+
+void IntroductionPage::resizeEvent(QResizeEvent *event)
+{
+    PackageManagerPage::resizeEvent(event);
+    updateErrorLabelPosition();
+}
+
+void IntroductionPage::updateErrorLabelPosition()
+{
+    if (!m_errorLabel)
+        return;
+
+    static const int kErrorLabelMargin = 32;
+    const int maxWidth = qMax(0, width() - (kErrorLabelMargin * 2));
+    m_errorLabel->setWordWrap(false);
+    m_errorLabel->setMaximumWidth(QWIDGETSIZE_MAX);
+    m_errorLabel->adjustSize();
+
+    if (m_errorLabel->sizeHint().width() > maxWidth) {
+        m_errorLabel->setWordWrap(true);
+        m_errorLabel->setMaximumWidth(maxWidth);
+    }
+
+    m_errorLabel->adjustSize();
+    m_errorLabel->move(kErrorLabelMargin, height() - kErrorLabelMargin - m_errorLabel->height());
 }
 
 

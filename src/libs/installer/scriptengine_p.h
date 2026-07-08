@@ -118,7 +118,7 @@ public:
     Q_INVOKABLE bool isButtonEnabled(int wizardButton);
     Q_INVOKABLE void setWizardPageButtonText(int pageId, int buttonId, const QString &buttonText);
     Q_INVOKABLE void setButtonVisible(int wizardButton, bool visible);
-
+    Q_INVOKABLE void updateButtonStyle(int wizardButton);
     Q_INVOKABLE void showSettingsButton(bool show);
     Q_INVOKABLE void setSettingsButtonEnabled(bool enable);
 
