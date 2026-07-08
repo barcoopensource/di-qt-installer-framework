@@ -2544,8 +2544,6 @@ LicenseAgreementPage::LicenseAgreementPage(PackageManagerCore *core)
     m_textBrowser->setOpenLinks(false);
     m_textBrowser->setOpenExternalLinks(true);
     m_textBrowser->setHorizontalScrollBarPolicy(Qt::ScrollBarAlwaysOff);
-    m_textBrowser->setLineWrapMode(QTextEdit::WidgetWidth);
-    m_textBrowser->setWordWrapMode(QTextOption::WrapAtWordBoundaryOrAnywhere);
     m_textBrowser->setFont(QFontDatabase::systemFont(QFontDatabase::FixedFont));
     m_textBrowser->setObjectName(QLatin1String("LicenseTextBrowser"));
     connect(m_textBrowser, &QTextBrowser::anchorClicked, this, &LicenseAgreementPage::openLicenseUrl);
