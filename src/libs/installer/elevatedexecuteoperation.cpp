@@ -307,10 +307,9 @@ void ElevatedExecuteOperation::Private::readProcessOutput()
     const QByteArray output = process->readAll();
     if (!output.isEmpty()) {
         if (q->error() == UserDefinedError)
-            qCWarning(QInstaller::lcInstallerInstallLog)<< output;
+            qCWarning(QInstaller::lcInstallerInstallLog) << QString::fromLocal8Bit(output);
         else
-            qCDebug(QInstaller::lcInstallerInstallLog) << output;
-        emit q->outputTextChanged(QString::fromLocal8Bit(output));
+            qCDebug(QInstaller::lcInstallerInstallLog) << QString::fromLocal8Bit(output);
     }
 }
 
