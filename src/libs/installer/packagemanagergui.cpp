@@ -663,7 +663,6 @@ void PackageManagerGui::onScreenGeometryChanged(const QRect &availableGeometry)
         int finalY = qBound(avail.top(), curGeo.y(), maxY);
 
         setGeometry(QRect(finalX, finalY, finalW, finalH));
-        adjustSize();
         update();
         m_lastDpr = newDpr;
     });
