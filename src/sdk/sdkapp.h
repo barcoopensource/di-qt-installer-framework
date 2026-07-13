@@ -569,7 +569,7 @@ public:
                         f.open(QIODevice::ReadOnly);
                         if (f.fileName().endsWith(QLatin1String("installer.dat")))
                              continue;
-                        QInstaller::BinaryContent::findMagicCookie(&f, magicMarker);
+                        QInstaller::BinaryContent::findMagicCookie(&f, QInstaller::BinaryContent::MagicCookieDat);
                         datFileName = f.fileName();
                         break;
                     } catch (const QInstaller::Error &error) {
