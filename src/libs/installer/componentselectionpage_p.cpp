@@ -225,6 +225,16 @@ ComponentSelectionPagePrivate::ComponentSelectionPagePrivate(ComponentSelectionP
     connect(m_core, SIGNAL(metaJobInfoMessage(QString)), this, SLOT(setMessage(QString)));
     connect(m_core, &PackageManagerCore::metaJobTotalProgress, this,
             &ComponentSelectionPagePrivate::setTotalProgress);
+
+    connect(m_core, &PackageManagerCore::finishAllComponentsReset, this, [this](const QList<QInstaller::Component*> &) {
+            bool hasChildren = false;
+            const int rowCount = m_proxyModel->rowCount();
+            for (int row = 0; row < rowCount && !hasChildren; ++row)
+                hasChildren = m_proxyModel->hasChildren(m_proxyModel->index(row, 0));
+
+            m_treeView->setRootIsDecorated(hasChildren);
+            expandDefault();
+    });
 }
 
 ComponentSelectionPagePrivate::~ComponentSelectionPagePrivate()
