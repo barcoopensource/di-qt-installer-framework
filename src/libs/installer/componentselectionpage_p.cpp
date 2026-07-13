@@ -226,7 +226,9 @@ ComponentSelectionPagePrivate::ComponentSelectionPagePrivate(ComponentSelectionP
     connect(m_core, &PackageManagerCore::metaJobTotalProgress, this,
             &ComponentSelectionPagePrivate::setTotalProgress);
 
-    connect(m_core, &PackageManagerCore::finishAllComponentsReset, this, [this](const QList<QInstaller::Component*> &) {
+    connect(m_core, &PackageManagerCore::finishAllComponentsReset, this, [this](const QList<QInstaller::Component*> &componentsList) {
+            Q_UNUSED(componentsList)
+
             bool hasChildren = false;
             const int rowCount = m_proxyModel->rowCount();
             for (int row = 0; row < rowCount && !hasChildren; ++row)
