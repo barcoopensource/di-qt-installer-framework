@@ -386,7 +386,7 @@ public:
 
     void setCheckAvailableSpace(bool check);
     bool checkAvailableSpace();
-    QString availableSpaceMessage() const;
+    Q_INVOKABLE QString availableSpaceMessage() const;
 
     Q_INVOKABLE quint64 requiredDiskSpace() const;
     Q_INVOKABLE quint64 requiredTemporaryDiskSpace() const;
