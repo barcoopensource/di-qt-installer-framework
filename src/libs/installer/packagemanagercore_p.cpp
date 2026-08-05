@@ -2356,6 +2356,11 @@ bool PackageManagerCorePrivate::runUninstaller()
         }
 #endif
 
+        //show a full progress bar when completed
+        const int progress = ProgressCoordinator::instance()->progressInPercentage();
+        if (progress < 100)
+            ProgressCoordinator::instance()->addManualPercentagePoints(100 - progress);
+
         unregisterMaintenanceTool();
         m_needToWriteMaintenanceTool = false;
         setStatus(PackageManagerCore::Success);
@@ -2369,11 +2374,6 @@ bool PackageManagerCorePrivate::runUninstaller()
         if(m_error.isEmpty())
             m_error = err.message(); 
     }
-
-    //show a full progress bar when completed
-    const int progress = ProgressCoordinator::instance()->progressInPercentage();
-    if (progress < 100)
-        ProgressCoordinator::instance()->addManualPercentagePoints(100 - progress);
 
     const bool success = (m_core->status() == PackageManagerCore::Success);
     if (adminRightsGained)
