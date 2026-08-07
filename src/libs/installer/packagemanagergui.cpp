@@ -2330,7 +2330,9 @@ void IntroductionPage::updateErrorLabelPosition()
     }
 
     m_errorLabel->adjustSize();
-    m_errorLabel->move(kErrorLabelMargin, height() - kErrorLabelMargin - m_errorLabel->height());
+    PackageManagerCore *core = packageManagerCore();
+    if (!core->isInstaller())
+        m_errorLabel->move(kErrorLabelMargin, height() - kErrorLabelMargin - m_errorLabel->height());
 }
 
 
