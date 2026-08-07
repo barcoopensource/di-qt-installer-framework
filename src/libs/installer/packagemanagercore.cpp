@@ -3957,7 +3957,6 @@ void PackageManagerCore::setProxyMode(const QString &proxyType)
 QString PackageManagerCore::getHttpProxyHost() const
 {
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
-    qInfo() << "installer value: proxy hostname" << proxy.hostName();
 
     return proxy.hostName();
 }
@@ -3968,13 +3967,11 @@ void PackageManagerCore::setHttpProxyHost(const QString &hostName)
     proxy.setType(QNetworkProxy::HttpProxy);
     proxy.setHostName(hostName);
     d->m_data.settings().setHttpProxy(proxy);
-    qInfo() << "set proxy hostname" << proxy.hostName();
 }
 
 QString PackageManagerCore::getHttpProxyPort() const
 {
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
-    qInfo() << "installer value: proxy port" << proxy.port();
 
     return QString::number(proxy.port());
 }
@@ -3988,7 +3985,6 @@ void PackageManagerCore::setHttpProxyPort(const QString &port)
     if (boolVal)
     {
         d->m_data.settings().setHttpProxy(proxy);
-        qInfo() << "set proxy port" << proxy.port();
     }
     else
     {
@@ -4000,7 +3996,6 @@ void PackageManagerCore::setHttpProxyPort(const QString &port)
 QString PackageManagerCore::getHttpProxyUser() const
 {
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
-    qInfo() << "installer value: proxy user" << proxy.user();
 
     return proxy.user();
 }
@@ -4016,7 +4011,6 @@ void PackageManagerCore::setHttpProxyUser(const QString &userName)
 QString PackageManagerCore::getHttpProxyPwd() const
 {
     QNetworkProxy proxy = d->m_data.settings().httpProxy();
-    qInfo() << "installer value: proxy password" << proxy.password();
 
     return proxy.password();
 }
@@ -4057,7 +4051,6 @@ void PackageManagerCore::stopProxyConnectionTest()
 QString PackageManagerCore::getFtpProxyHost() const
 {
     QNetworkProxy proxy = d->m_data.settings().ftpProxy();
-    qInfo() << "installer value: proxy hostname" << proxy.hostName();
 
     return proxy.hostName();
 }
@@ -4067,14 +4060,11 @@ void PackageManagerCore::setFtpProxyHost(const QString &hostName)
     QNetworkProxy proxy = d->m_data.settings().ftpProxy();
     proxy.setHostName(hostName);
     d->m_data.settings().setFtpProxy(proxy);
-    qInfo() << "set proxy hostname" << proxy.hostName();
 }
 
 QString PackageManagerCore::getFtpProxyPort() const
 {
     QNetworkProxy proxy = d->m_data.settings().ftpProxy();
-
-    qInfo() << "installer value: proxy port" << proxy.port();
 
     return QString::number(proxy.port());
 }
@@ -4087,7 +4077,6 @@ void PackageManagerCore::setFtpProxyPort(const QString &port)
     if (boolVal)
     {
         d->m_data.settings().setFtpProxy(proxy);
-        qInfo() << "set proxy port" << proxy.port();
     }
     else
     {
@@ -4098,7 +4087,6 @@ void PackageManagerCore::setFtpProxyPort(const QString &port)
 QString PackageManagerCore::getFtpProxyUser() const
 {
     QNetworkProxy proxy = d->m_data.settings().ftpProxy();
-    qInfo() << "installer value: proxy user" << proxy.user();
 
     return proxy.user();
 }
@@ -4108,13 +4096,11 @@ void PackageManagerCore::setFtpProxyUser(const QString &userName)
     QNetworkProxy proxy = d->m_data.settings().ftpProxy();
     proxy.setUser(userName);
     d->m_data.settings().setFtpProxy(proxy);
-    qInfo() << "set proxy port" << proxy.user();
 }
 
 QString PackageManagerCore::getFtpProxyPwd() const
 {
     QNetworkProxy proxy = d->m_data.settings().ftpProxy();
-    qInfo() << "installer value: proxy password" << proxy.password();
 
     return proxy.password();
 }
@@ -4124,7 +4110,6 @@ void PackageManagerCore::setFtpProxyPwd(const QString &password)
     QNetworkProxy proxy = d->m_data.settings().ftpProxy();
     proxy.setPassword(password);
     d->m_data.settings().setFtpProxy(proxy);
-    qInfo() << "set proxy port" << proxy.password();
 }
 
 bool PackageManagerCore::getFtpProxyAuth() const
