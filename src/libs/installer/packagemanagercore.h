@@ -251,6 +251,9 @@ public:
     Q_INVOKABLE void removeUserRepositories();
     Q_INVOKABLE void setTemporaryRepositories(const QStringList &repositories,
                                               bool replace = false, bool compressed = false);
+    Q_INVOKABLE void addTemporaryRepositories(const QStringList &repositories,
+                                              bool replace = false, bool compressed = false);
+
     Q_INVOKABLE bool addQBspRepositories(const QStringList &repositories);
     bool validRepositoriesAvailable() const;
     Q_INVOKABLE void setAllowCompressedRepositoryInstall(bool allow);

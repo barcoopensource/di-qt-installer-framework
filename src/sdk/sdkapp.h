@@ -416,7 +416,7 @@ public:
                     return false;
                 }
             }
-            m_core->setTemporaryRepositories(repoList, false, true);
+            m_core->addTemporaryRepositories(repoList, false, true);
         }
         // Disable checking for free space on target
         if (m_parser.isSet(CommandLineOptions::scNoSizeCheckingLong))

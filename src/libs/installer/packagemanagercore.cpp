@@ -2087,6 +2087,15 @@ void PackageManagerCore::setTemporaryRepositories(const QStringList &repositorie
     settings().setTemporaryRepositories(repositorySet, replace);
 }
 
+void PackageManagerCore::addTemporaryRepositories(const QStringList &repositories, bool replace,
+                                                  bool compressed)
+{
+    QSet<Repository> repositorySet;
+    foreach (const QString &repository, repositories)
+        repositorySet.insert(Repository::fromUserInput(repository, compressed));
+    settings().addTemporaryRepositories(repositorySet, replace);
+}
+
 bool PackageManagerCore::addQBspRepositories(const QStringList &repositories)
 {
     QSet<Repository> set;
