@@ -50,6 +50,7 @@ public:
     int removeInstallation();
     int createOfflineInstaller();
     int clearLocalCache();
+    int configure();
 
 private:
     bool initialize();
@@ -58,6 +59,7 @@ private:
     QHash<QString, QString> parsePackageFilters();
 
     QStringList m_positionalArguments;
+    QJSValue m_controlScriptContext;
 };
 
 #endif // COMMANDLINEINTERFACE_H

@@ -38,6 +38,8 @@
 
 #include <QDir>
 
+const QString CONFIGURE_VALUE_VALIDATION_CALLBACK_NAME = QLatin1String("configureParaListValidationCallback");
+const QString UPDATE_SETTINGS_FILE_CALLBACK_NAME = QLatin1String("updateSettingsFileCallback");
 CommandLineInterface::CommandLineInterface(int &argc, char *argv[])
     : SDKApp<QCoreApplication>(argc, argv)
 {
@@ -83,7 +85,7 @@ bool CommandLineInterface::initialize()
     m_core->saveGivenArguments(QStringList() << command << m_parser.optionNames());
     QString ctrlScript = controlScript();
     if (!ctrlScript.isEmpty()) {
-        m_core->controlScriptEngine()->loadInContext(
+        m_controlScriptContext = m_core->controlScriptEngine()->loadInContext(
                 QLatin1String("Controller"), ctrlScript);
         qCDebug(QInstaller::lcInstallerInstallLog) << "Loaded control script" << ctrlScript;
     }
@@ -266,6 +268,70 @@ int CommandLineInterface::clearLocalCache()
         return EXIT_FAILURE;
 
     qCDebug(QInstaller::lcInstallerInstallLog) << "Cache cleared successfully!";
+    return EXIT_SUCCESS;
+}
+
+int CommandLineInterface::configure()
+{
+    if (!initialize())
+        return EXIT_FAILURE;
+    if (m_core->isInstaller()) {
+        qCWarning(QInstaller::lcInstallerInstallLog)
+            << "Cannot change configuration with installer.";
+        return EXIT_FAILURE;
+    }
+    //For messages to be properly documented in log file
+    m_core->setPackageManager();
+
+    QHash<QString, QString> configureValueParams;
+    const QStringList positionalArguments = m_parser.positionalArguments();
+    foreach (const QString &argument, positionalArguments) {
+        if (argument.contains(QLatin1Char('='))) {
+            const QString name = argument.section(QLatin1Char('='), 0, 0).trimmed();
+            const QString value = argument.section(QLatin1Char('='), 1).trimmed();
+            if (!name.isEmpty())
+                configureValueParams.insert(name, value);
+        }
+    }
+
+    bool gainedAdminRights = false;
+    QStringList keysConfigure = configureValueParams.keys();
+    QStringList valuesConfigure = configureValueParams.values();
+    QJSValue keysArray = m_core->controlScriptEngine()->newArray(keysConfigure.size());
+    QJSValue valuesArray = m_core->controlScriptEngine()->newArray(valuesConfigure.size());
+    for (int i = 0; i < keysConfigure.size(); ++i)
+    {
+        keysArray.setProperty(i, keysConfigure.at(i));
+        valuesArray.setProperty(i, valuesConfigure.at(i));
+    }
+    try {
+        gainedAdminRights = m_core->gainAdminRights();
+        //Validate configure parameters
+        if (!m_controlScriptContext.isUndefined()) {
+            m_core->controlScriptEngine()->callScriptMethod(m_controlScriptContext, CONFIGURE_VALUE_VALIDATION_CALLBACK_NAME,
+            QJSValueList() << keysArray << valuesArray);
+        }
+
+        //Write to package data
+        m_core->writeMaintenanceConfigFiles();
+
+        //Update settings file accordingly
+        if (!m_controlScriptContext.isUndefined()) {
+            m_core->controlScriptEngine()->callScriptMethod(m_controlScriptContext,
+                UPDATE_SETTINGS_FILE_CALLBACK_NAME,
+                QJSValueList() << keysArray << valuesArray);
+        }
+        if (gainedAdminRights)
+            m_core->dropAdminRights();
+    } catch (const QInstaller::Error &err) {
+        if (gainedAdminRights)
+            m_core->dropAdminRights();
+        qCCritical(QInstaller::lcInstallerInstallLog) << err.message();
+        return EXIT_FAILURE;
+    }
+
+    qCDebug(QInstaller::lcInstallerInstallLog)
+        << "Configuration updated successfully.";
     return EXIT_SUCCESS;
 }
 

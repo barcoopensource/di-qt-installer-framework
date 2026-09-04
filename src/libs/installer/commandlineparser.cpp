@@ -70,6 +70,8 @@ CommandLineParser::CommandLineParser()
             .arg(CommandLineOptions::scCreateOfflineShort, CommandLineOptions::scCreateOfflineLong)
         + indent + QString::fromLatin1("%1, %2 - clear contents of the local metadata cache\n")
             .arg(CommandLineOptions::scClearCacheShort, CommandLineOptions::scClearCacheLong)
+        + indent + QString::fromLatin1("%1, %2 - change installer configuration\n")
+            .arg(CommandLineOptions::scConfigureShort, CommandLineOptions::scConfigureLong)
         + indent + QString::fromLatin1("%1, %2 - uninstall all packages and remove entire program directory")
             .arg(CommandLineOptions::scPurgeShort, CommandLineOptions::scPurgeLong);
 
