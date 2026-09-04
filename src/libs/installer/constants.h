@@ -223,6 +223,8 @@ static const QLatin1String scClearCacheShort("cc");
 static const QLatin1String scClearCacheLong("clear-cache");
 static const QLatin1String scPurgeShort("pr");
 static const QLatin1String scPurgeLong("purge");
+static const QLatin1String scConfigureShort("ci");
+static const QLatin1String scConfigureLong("configure");
 
 // Repository management options
 static const QLatin1String scAddRepositoryShort("ar");
@@ -337,7 +339,9 @@ static const QStringList scCommandLineInterfaceOptions = {
     scPurgeShort,
     scPurgeLong,
     scClearCacheShort,
-    scClearCacheLong
+    scClearCacheLong,
+    scConfigureShort,
+    scConfigureLong
 };
 
 } // namespace CommandLineOptions
