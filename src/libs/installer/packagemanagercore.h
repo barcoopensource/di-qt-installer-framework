@@ -99,7 +99,8 @@ public:
         Unfinished = 4,
         ForceUpdate = 5,
         EssentialUpdated = 6,
-        NoPackagesFound = 7
+        NoPackagesFound = 7,
+        ConfigureFailure = 8
     };
     Status status() const;
     Q_INVOKABLE QString error() const;

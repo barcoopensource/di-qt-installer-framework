@@ -38,8 +38,8 @@
 
 #include <QDir>
 
-const QString CONFIGURE_VALUE_VALIDATION_CALLBACK_NAME = QLatin1String("configureParaListValidationCallback");
-const QString UPDATE_SETTINGS_FILE_CALLBACK_NAME = QLatin1String("updateSettingsFileCallback");
+const QString CONFIGURE_VALUE_VALIDATION_CALLBACK_NAME = QLatin1String("configValidateCallback");
+const QString UPDATE_SETTINGS_FILE_CALLBACK_NAME = QLatin1String("updateSettingsCallback");
 CommandLineInterface::CommandLineInterface(int &argc, char *argv[])
     : SDKApp<QCoreApplication>(argc, argv)
 {
@@ -327,7 +327,7 @@ int CommandLineInterface::configure()
         if (gainedAdminRights)
             m_core->dropAdminRights();
         qCCritical(QInstaller::lcInstallerInstallLog) << err.message();
-        return EXIT_FAILURE;
+        return QInstaller::PackageManagerCore::Status::ConfigureFailure;
     }
 
     qCDebug(QInstaller::lcInstallerInstallLog)
