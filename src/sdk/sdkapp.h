@@ -283,7 +283,7 @@ public:
                 }
                 if(isValid == false)
                 {
-                    errorMessage = QObject::tr("Manual proxy portId empty.");
+                    errorMessage = QObject::tr("Manual proxy port empty.");
                     return false;
                 }
                 m_core->settings().setHttpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, httpProxyName, portId));
@@ -312,7 +312,7 @@ public:
                 }
                 if(isValid == false)
                 {
-                    errorMessage = QObject::tr("Manual proxy portId empty.");
+                    errorMessage = QObject::tr("Manual proxy port empty.");
                     return false;
                 }
                 m_core->settings().setFtpProxy(QNetworkProxy(QNetworkProxy::HttpProxy, ftpProxyName, portId));
@@ -330,7 +330,7 @@ public:
                 }
 
             }else {
-                errorMessage = QObject::tr("Manual proxy name and portId need to be specifed.");
+                errorMessage = QObject::tr("Manual proxy name and port need to be specifed.");
                 return false;
             }
         } else if (QNetworkProxyFactory::usesSystemConfiguration()) {
