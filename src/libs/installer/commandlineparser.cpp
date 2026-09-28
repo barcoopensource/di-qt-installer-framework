@@ -138,8 +138,8 @@ CommandLineParser::CommandLineParser()
         QLatin1String("ProxyName")));
     addOption(QCommandLineOption(QStringList()
         << CommandLineOptions::scPortIdShort << CommandLineOptions::scPortIdLong,
-        QLatin1String("Port id."),
-        QLatin1String("PortId")));
+        QLatin1String("Proxy port."),
+        QLatin1String("ProxyPort")));
     addOption(QCommandLineOption(QStringList()
         << CommandLineOptions::scProxyUserNameShort << CommandLineOptions::scProxyUserNameLong,
         QLatin1String("Proxy Username."),
