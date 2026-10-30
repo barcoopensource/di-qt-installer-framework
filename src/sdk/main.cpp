@@ -54,6 +54,11 @@
 
 #include <iostream>
 
+#ifdef Q_OS_WIN
+#  include <cstdio>
+#  include <io.h>
+#endif
+
 #if defined(Q_OS_MACOS) || defined(Q_OS_UNIX)
 #  include <unistd.h>
 #  include <sys/types.h>
@@ -67,6 +72,26 @@
 static const char PLACEHOLDER[32] = "MY_InstallerCreateDateTime_MY";
 
 #ifdef Q_OS_WIN
+static void attachParentConsole()
+{
+    if (!AttachConsole(ATTACH_PARENT_PROCESS) && GetLastError() != ERROR_ACCESS_DENIED)
+        return;
+
+    const auto restoreStream = [](FILE *stream, const char *device, const char *mode) {
+        const int descriptor = _fileno(stream);
+        if (descriptor < 0 || _get_osfhandle(descriptor) == -1) {
+            FILE *reopenedStream = nullptr;
+            freopen_s(&reopenedStream, device, mode, stream);
+        }
+    };
+    restoreStream(stdin, "CONIN$", "r");
+    restoreStream(stdout, "CONOUT$", "w");
+    restoreStream(stderr, "CONOUT$", "w");
+    std::cin.clear();
+    std::cout.clear();
+    std::cerr.clear();
+}
+
 static void cleanupUpdate(const CommandLineParser &parser, bool *exit)
 {
     QString cleanupPath;
@@ -107,6 +132,7 @@ static void cleanupUpdate(const CommandLineParser &parser, bool *exit)
 int main(int argc, char *argv[])
 {
 #ifdef Q_OS_WIN
+    attachParentConsole();
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 #endif
 
@@ -365,19 +391,6 @@ int main(int argc, char *argv[])
         }
         if (QInstaller::LoggingHandler::instance().isVerbose()) {
             std::cout << VERSION << std::endl << BUILDDATE << std::endl << SHA << std::endl;
-        } else {
-#ifdef Q_OS_WIN
-            // Check if installer is started from console. If so, restart the installer so it
-            // won't reserve the console handles.
-            DWORD procIDs[2];
-            DWORD maxCount = 2;
-            DWORD result = GetConsoleProcessList((LPDWORD)procIDs, maxCount);
-            FreeConsole(); // Closes console in GUI version
-            if (result > 1) {
-                restarter.setRestartOnQuit(true);
-                return EXIT_FAILURE;
-            }
-#endif
         }
         return InstallerBase(argc, argv).run();
 
