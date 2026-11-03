@@ -74,19 +74,58 @@ static const char PLACEHOLDER[32] = "MY_InstallerCreateDateTime_MY";
 #ifdef Q_OS_WIN
 static void attachParentConsole()
 {
-    if (!AttachConsole(ATTACH_PARENT_PROCESS) && GetLastError() != ERROR_ACCESS_DENIED)
+    const auto isValidHandle = [](HANDLE handle) {
+        DWORD flags = 0;
+        return handle != nullptr && handle != INVALID_HANDLE_VALUE
+            && GetHandleInformation(handle, &flags);
+    };
+    const auto captureHandle = [&isValidHandle](DWORD standardHandle, FILE *stream) {
+        HANDLE handle = GetStdHandle(standardHandle);
+        // If the standard handle is not valid, try to capture it from the CRT stream.
+        if (!isValidHandle(handle)) {
+            const int descriptor = _fileno(stream);
+            const intptr_t crtHandle = descriptor >= 0 ? _get_osfhandle(descriptor) : -1;
+            if (crtHandle != -1)
+                handle = reinterpret_cast<HANDLE>(crtHandle);
+        }
+        return isValidHandle(handle) ? handle : INVALID_HANDLE_VALUE;
+    };
+
+    const HANDLE standardInput = captureHandle(STD_INPUT_HANDLE, stdin);
+    const HANDLE standardOutput = captureHandle(STD_OUTPUT_HANDLE, stdout);
+    const HANDLE standardError = captureHandle(STD_ERROR_HANDLE, stderr);
+
+    const BOOL attached = AttachConsole(ATTACH_PARENT_PROCESS);
+    const DWORD attachError = attached ? ERROR_SUCCESS : GetLastError();
+    if (!attached && attachError != ERROR_ACCESS_DENIED)
         return;
 
-    const auto restoreStream = [](FILE *stream, const char *device, const char *mode) {
+    // AttachConsole changes Win32 standard handles; preserve inherited pipes for child processes.
+    if (standardInput != INVALID_HANDLE_VALUE)
+        SetStdHandle(STD_INPUT_HANDLE, standardInput);
+    if (standardOutput != INVALID_HANDLE_VALUE)
+        SetStdHandle(STD_OUTPUT_HANDLE, standardOutput);
+    if (standardError != INVALID_HANDLE_VALUE)
+        SetStdHandle(STD_ERROR_HANDLE, standardError);
+
+    const auto restoreStream = [&isValidHandle](FILE *stream, const char *device,
+                                                 const char *mode, DWORD standardHandle,
+                                                 HANDLE inheritedHandle) {
         const int descriptor = _fileno(stream);
-        if (descriptor < 0 || _get_osfhandle(descriptor) == -1) {
+        if ((descriptor < 0 || _get_osfhandle(descriptor) == -1)
+                && inheritedHandle == INVALID_HANDLE_VALUE) {
             FILE *reopenedStream = nullptr;
-            freopen_s(&reopenedStream, device, mode, stream);
+            if (freopen_s(&reopenedStream, device, mode, stream) == 0 && reopenedStream) {
+                const int reopenedDescriptor = _fileno(reopenedStream);
+                const intptr_t reopenedHandle = _get_osfhandle(reopenedDescriptor);
+                if (reopenedHandle != -1)
+                    SetStdHandle(standardHandle, reinterpret_cast<HANDLE>(reopenedHandle));
+            }
         }
     };
-    restoreStream(stdin, "CONIN$", "r");
-    restoreStream(stdout, "CONOUT$", "w");
-    restoreStream(stderr, "CONOUT$", "w");
+    restoreStream(stdin, "CONIN$", "r", STD_INPUT_HANDLE, standardInput);
+    restoreStream(stdout, "CONOUT$", "w", STD_OUTPUT_HANDLE, standardOutput);
+    restoreStream(stderr, "CONOUT$", "w", STD_ERROR_HANDLE, standardError);
     std::cin.clear();
     std::cout.clear();
     std::cerr.clear();
