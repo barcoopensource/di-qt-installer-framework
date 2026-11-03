@@ -4,6 +4,11 @@ TARGET = installerbase
 
 include(../../installerfw.pri)
 
+win32 {
+    CONFIG -= console
+    CONFIG += windows
+}
+
 !isEmpty(SQUISH_PATH) {
     DEFINES += ENABLE_SQUISH
     include($$SQUISH_PATH/qtbuiltinhook.pri)

@@ -54,6 +54,11 @@
 
 #include <iostream>
 
+#ifdef Q_OS_WIN
+#  include <cstdio>
+#  include <io.h>
+#endif
+
 #if defined(Q_OS_MACOS) || defined(Q_OS_UNIX)
 #  include <unistd.h>
 #  include <sys/types.h>
@@ -67,6 +72,65 @@
 static const char PLACEHOLDER[32] = "MY_InstallerCreateDateTime_MY";
 
 #ifdef Q_OS_WIN
+static void attachParentConsole()
+{
+    const auto isValidHandle = [](HANDLE handle) {
+        DWORD flags = 0;
+        return handle != nullptr && handle != INVALID_HANDLE_VALUE
+            && GetHandleInformation(handle, &flags);
+    };
+    const auto captureHandle = [&isValidHandle](DWORD standardHandle, FILE *stream) {
+        HANDLE handle = GetStdHandle(standardHandle);
+        // If the standard handle is not valid, try to capture it from the CRT stream.
+        if (!isValidHandle(handle)) {
+            const int descriptor = _fileno(stream);
+            const intptr_t crtHandle = descriptor >= 0 ? _get_osfhandle(descriptor) : -1;
+            if (crtHandle != -1)
+                handle = reinterpret_cast<HANDLE>(crtHandle);
+        }
+        return isValidHandle(handle) ? handle : INVALID_HANDLE_VALUE;
+    };
+
+    const HANDLE standardInput = captureHandle(STD_INPUT_HANDLE, stdin);
+    const HANDLE standardOutput = captureHandle(STD_OUTPUT_HANDLE, stdout);
+    const HANDLE standardError = captureHandle(STD_ERROR_HANDLE, stderr);
+
+    const BOOL attached = AttachConsole(ATTACH_PARENT_PROCESS);
+    const DWORD attachError = attached ? ERROR_SUCCESS : GetLastError();
+    if (!attached && attachError != ERROR_ACCESS_DENIED)
+        return;
+
+    // AttachConsole changes Win32 standard handles; preserve inherited pipes for child processes.
+    if (standardInput != INVALID_HANDLE_VALUE)
+        SetStdHandle(STD_INPUT_HANDLE, standardInput);
+    if (standardOutput != INVALID_HANDLE_VALUE)
+        SetStdHandle(STD_OUTPUT_HANDLE, standardOutput);
+    if (standardError != INVALID_HANDLE_VALUE)
+        SetStdHandle(STD_ERROR_HANDLE, standardError);
+
+    const auto restoreStream = [&isValidHandle](FILE *stream, const char *device,
+                                                 const char *mode, DWORD standardHandle,
+                                                 HANDLE inheritedHandle) {
+        const int descriptor = _fileno(stream);
+        if ((descriptor < 0 || _get_osfhandle(descriptor) == -1)
+                && inheritedHandle == INVALID_HANDLE_VALUE) {
+            FILE *reopenedStream = nullptr;
+            if (freopen_s(&reopenedStream, device, mode, stream) == 0 && reopenedStream) {
+                const int reopenedDescriptor = _fileno(reopenedStream);
+                const intptr_t reopenedHandle = _get_osfhandle(reopenedDescriptor);
+                if (reopenedHandle != -1)
+                    SetStdHandle(standardHandle, reinterpret_cast<HANDLE>(reopenedHandle));
+            }
+        }
+    };
+    restoreStream(stdin, "CONIN$", "r", STD_INPUT_HANDLE, standardInput);
+    restoreStream(stdout, "CONOUT$", "w", STD_OUTPUT_HANDLE, standardOutput);
+    restoreStream(stderr, "CONOUT$", "w", STD_ERROR_HANDLE, standardError);
+    std::cin.clear();
+    std::cout.clear();
+    std::cerr.clear();
+}
+
 static void cleanupUpdate(const CommandLineParser &parser, bool *exit)
 {
     QString cleanupPath;
@@ -107,6 +171,7 @@ static void cleanupUpdate(const CommandLineParser &parser, bool *exit)
 int main(int argc, char *argv[])
 {
 #ifdef Q_OS_WIN
+    attachParentConsole();
     SetProcessDpiAwarenessContext(DPI_AWARENESS_CONTEXT_PER_MONITOR_AWARE_V2);
 #endif
 
@@ -365,19 +430,6 @@ int main(int argc, char *argv[])
         }
         if (QInstaller::LoggingHandler::instance().isVerbose()) {
             std::cout << VERSION << std::endl << BUILDDATE << std::endl << SHA << std::endl;
-        } else {
-#ifdef Q_OS_WIN
-            // Check if installer is started from console. If so, restart the installer so it
-            // won't reserve the console handles.
-            DWORD procIDs[2];
-            DWORD maxCount = 2;
-            DWORD result = GetConsoleProcessList((LPDWORD)procIDs, maxCount);
-            FreeConsole(); // Closes console in GUI version
-            if (result > 1) {
-                restarter.setRestartOnQuit(true);
-                return EXIT_FAILURE;
-            }
-#endif
         }
         return InstallerBase(argc, argv).run();
 
