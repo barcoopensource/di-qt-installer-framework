@@ -270,6 +270,16 @@ public:
             m_core->settings().setProxyType(QInstaller::Settings::NoProxy);
             KDUpdater::FileDownloaderFactory::instance().setProxyFactory(m_core->proxyFactory());
         } else if(m_parser.isSet(CommandLineOptions::scManualProxyLong)) {
+            // Check if both username and password are provided correctly
+            const bool givenUserName = m_parser.isSet(CommandLineOptions::scProxyUserNameLong);
+            const bool givenPassword = m_parser.isSet(CommandLineOptions::scProxyPasswordLong);
+            if (givenUserName != givenPassword
+                    || (givenUserName && (m_parser.value(CommandLineOptions::scProxyUserNameLong).isEmpty()
+                        || m_parser.value(CommandLineOptions::scProxyPasswordLong).isEmpty()))) {
+                errorMessage = QObject::tr("Missing or wrong proxy credentials.");
+                return false;
+            }
+            
             m_core->settings().setProxyType(QInstaller::Settings::UserDefinedProxy);
             // get proxy type, name, port
             if ((m_parser.isSet(CommandLineOptions::scHttpProxyHostNameLong)) && (m_parser.isSet(CommandLineOptions::scPortIdLong))) {
